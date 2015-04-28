@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="stdout-message">
+            <PatternLayout pattern="[%level] %message %n"/>
+        </Console>
+
+        <Console name="stdout-message-debug">
+            <PatternLayout pattern="[%-5level] %d{HH:mm:ss dd.mm} [%t] %logger{36} - %msg %n"/>
+            <Filters>
+                <ThresholdFilter level="info" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="warn" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="error" onMatch="DENY" onMismatch="NEUTRAL"/>
+                <ThresholdFilter level="fatal" onMatch="DENY" onMismatch="NEUTRAL"/>
+            </Filters>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="stdout-message-debug" level="debug"/>
+            <AppenderRef ref="stdout-message" level="info"/>
+        </Root>
+    </Loggers>
+</Configuration>
