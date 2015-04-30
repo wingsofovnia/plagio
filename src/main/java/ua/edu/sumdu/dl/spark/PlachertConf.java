@@ -30,11 +30,17 @@ public class PlachertConf implements Serializable {
     private String documentsTable;
     private static final String DEFAULT_DOCUMENT_PRIMARY_KEY = "document_id";
     private String documentsPrimaryKey;
+    private static final String DEFAULT_DOCUMENT_TITLE_COLUMN = "name";
+    private String documentsTitleColumn;
+    private static final String DEFAULT_DOCUMENT_CONTENT_COLUMN = "content";
+    private String documentsContentColumn;
 
     private static final String DEFAULT_SHINGLE_TABLE = "shingle";
     private String shinglesTable;
     private static final String DEFAULT_SHINGLE_PRIMARY_KEY = "document_id";
     private String shinglesPrimaryKey;
+    private static final String DEFAULT_SHINGLE_CONTENT_COLUMN = "hash";
+    private String shinglesContentColumn;
 
     private List<IProcessor<String>> parsingProcessors = new ArrayList<>();
 
@@ -137,6 +143,24 @@ public class PlachertConf implements Serializable {
         return this;
     }
 
+    public String getDocumentsTitleColumn() {
+        return documentsTitleColumn;
+    }
+
+    public PlachertConf setDocumentsTitleColumn(String documentsTitleColumn) {
+        this.documentsTitleColumn = documentsTitleColumn;
+        return this;
+    }
+
+    public String getDocumentsContentColumn() {
+        return documentsContentColumn;
+    }
+
+    public PlachertConf setDocumentsContentColumn(String documentsContentColumn) {
+        this.documentsContentColumn = documentsContentColumn;
+        return this;
+    }
+
     public String getShinglesTable() {
         return shinglesTable;
     }
@@ -152,6 +176,15 @@ public class PlachertConf implements Serializable {
 
     public PlachertConf setShinglesPrimaryKey(String shinglesPrimaryKey) {
         this.shinglesPrimaryKey = shinglesPrimaryKey;
+        return this;
+    }
+
+    public String getShinglesContentColumn() {
+        return shinglesContentColumn;
+    }
+
+    public PlachertConf setShinglesContentColumn(String shinglesContentColumn) {
+        this.shinglesContentColumn = shinglesContentColumn;
         return this;
     }
 
@@ -300,6 +333,22 @@ public class PlachertConf implements Serializable {
                 setDocumentsPrimaryKey(DEFAULT_DOCUMENT_PRIMARY_KEY);
             }
 
+            String contentCol = properties.getProperty("database.supply.document.content");
+            if (contentCol != null) {
+                setDocumentsContentColumn(contentCol);
+            } else {
+                LOGGER.warn("No documents' table's content column set in configuration, using default value {}", DEFAULT_DOCUMENT_CONTENT_COLUMN);
+                setDocumentsContentColumn(DEFAULT_DOCUMENT_CONTENT_COLUMN);
+            }
+
+            String titleCol = properties.getProperty("database.supply.document.title");
+            if (titleCol != null) {
+                setDocumentsTitleColumn(titleCol);
+            } else {
+                LOGGER.warn("No documents' table's title column set in configuration, using default value {}", DEFAULT_DOCUMENT_TITLE_COLUMN);
+                setDocumentsTitleColumn(DEFAULT_DOCUMENT_TITLE_COLUMN);
+            }
+
             String shingleTable = properties.getProperty("database.supply.shingle.table");
             if (shingleTable != null) {
                 setShinglesTable(shingleTable);
@@ -314,6 +363,14 @@ public class PlachertConf implements Serializable {
             } else {
                 LOGGER.warn("No shingles' table's primary key set in configuration, using default value {}", DEFAULT_SHINGLE_PRIMARY_KEY);
                 setShinglesPrimaryKey(DEFAULT_SHINGLE_PRIMARY_KEY);
+            }
+
+            String shingleHashCol = properties.getProperty("database.supply.shingle.content");
+            if (shingleHashCol != null) {
+                setShinglesContentColumn(shingleHashCol);
+            } else {
+                LOGGER.warn("No shingles' table's content column set in configuration, using default value {}", DEFAULT_SHINGLE_CONTENT_COLUMN);
+                setShinglesContentColumn(DEFAULT_SHINGLE_CONTENT_COLUMN);
             }
 
             String debugMode = properties.getProperty("spark.application.debug");

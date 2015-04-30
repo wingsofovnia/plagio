@@ -150,9 +150,9 @@ public class PlachertSparkDriver implements Serializable {
                 List<Document> documents = new LinkedList<>();
                 try {
                     do {
-                        int documentId = resultSet.getInt(1);
-                        String name = resultSet.getString(2);
-                        Blob rawContent = resultSet.getBlob(3);
+                        int documentId = resultSet.getInt(plachertConf.getDocumentsPrimaryKey());
+                        String name = resultSet.getString(plachertConf.getDocumentsTitleColumn());
+                        Blob rawContent = resultSet.getBlob(plachertConf.getDocumentsContentColumn());
 
                         try {
                             IConverter<InputStream, String> textConverter = new TikaConverter(ac.getStringProcessManager());
@@ -200,8 +200,8 @@ public class PlachertSparkDriver implements Serializable {
                 List<Shingle> shingles = new LinkedList<>();
                 try {
                     while (resultSet.next()) {
-                        int documentId = resultSet.getInt(1);
-                        Integer shingle = resultSet.getInt(2);
+                        int documentId = resultSet.getInt(plachertConf.getDocumentIds());
+                        Integer shingle = resultSet.getInt(plachertConf.getShinglesContentColumn());
                         shingles.add(new Shingle(documentId, shingle));
                     }
                     return shingles.toArray(new Shingle[shingles.size()]);
