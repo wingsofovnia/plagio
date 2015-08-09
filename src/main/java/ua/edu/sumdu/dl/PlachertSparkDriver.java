@@ -10,33 +10,31 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.sql.Row;
 import scala.Tuple2;
 import ua.edu.sumdu.dl.algorithm.ShinglesAlgorithm;
 import ua.edu.sumdu.dl.parsing.ConverterException;
 import ua.edu.sumdu.dl.parsing.IConverter;
 import ua.edu.sumdu.dl.parsing.TikaConverter;
-import ua.edu.sumdu.dl.pojo.Document;
 import ua.edu.sumdu.dl.pojo.DocumentMeta;
 import ua.edu.sumdu.dl.pojo.Result;
-import ua.edu.sumdu.dl.pojo.Shingle;
 import ua.edu.sumdu.dl.spark.PlachertConf;
 import ua.edu.sumdu.dl.spark.PlachertContext;
-import ua.edu.sumdu.dl.spark.PlachertException;
-import ua.edu.sumdu.dl.spark.MappedDataSupplier;
-import ua.edu.sumdu.dl.spark.function.SparkFunction;
+import ua.edu.sumdu.dl.spark.db.JdbcRddSupplier;
 
 import java.io.*;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.stream.StreamSupport;
 
 /**
  * @author superuser
  *         Created 27-Mar-15
  */
 public class PlachertSparkDriver implements Serializable {
+    private static final String SPARK_APP_NAME = "ua.edu.sumdu.dl.antiplagiarism";
     private static final Logger LOGGER = LogManager.getLogger(PlachertSparkDriver.class);
 
     private static void printUsage() {
@@ -127,123 +125,87 @@ public class PlachertSparkDriver implements Serializable {
         // [Init] Building contexts
         LOGGER.info("Creating Spark Context, running Spark driver ...");
         SparkConf sparkConf = new SparkConf();
-        sparkConf.setAppName("ua.edu.sumdu.dl.antiplagiarism");
+        sparkConf.setAppName(SPARK_APP_NAME);
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         LOGGER.info("Spark Context has been successfully created.");
 
         LOGGER.info("Creating AntiPlagiarism Context ...");
         PlachertContext ac = new PlachertContext(plachertConf);
-        LOGGER.info("AntiPlagiarism has been successfully created.");
+        LOGGER.info("AntiPlagiarism context has been successfully created.");
 
-        // [#D0] Building supplier object for documents
-        MappedDataSupplier<Document[]> mappedDocumentDataSupplierJob = new MappedDataSupplier<>(sc, ac, Document[].class);
-        mappedDocumentDataSupplierJob.from(plachertConf.getDocumentsTable())
-                                     .primaryKey(plachertConf.getDocumentsPrimaryKey())
-                                     .autoUpperBound(true);
-        if (plachertConf.isDocumentIds())
-            mappedDocumentDataSupplierJob.where(plachertConf.getDocumentsPrimaryKey() + " IN (" + plachertConf.getDocumentIds() + ")");
+        // [#D1] Building supplier object for documents
+        String docTable = plachertConf.getDocumentsTable();
+        String docPk = plachertConf.getDocumentsPrimaryKey();
+        String docName = plachertConf.getDocumentsTitleColumn();
+        String docCont = plachertConf.getDocumentsContentColumn();
+        JdbcRddSupplier documentJdbcRddSupplier = new JdbcRddSupplier(sc, ac).primaryKey(docPk);
 
-        // [#D1.1] Supplying documents to Spark system
-        JavaRDD<Document[]> documentsRDD = mappedDocumentDataSupplierJob.get(new SparkFunction<ResultSet, Document[]>() {
-            @Override
-            public Document[] apply(ResultSet resultSet) {
-                List<Document> documents = new LinkedList<>();
-                try {
-                    do {
-                        int documentId = resultSet.getInt(plachertConf.getDocumentsPrimaryKey());
-                        String name = resultSet.getString(plachertConf.getDocumentsTitleColumn());
-                        Blob rawContent = resultSet.getBlob(plachertConf.getDocumentsContentColumn());
+        if (plachertConf.isDocumentIds()) {
+            String docInIds = plachertConf.getDocumentIds();
+            documentJdbcRddSupplier.from("(SELECT " + docPk + ", "
+                                                    + docName + ", "
+                                                    + docCont + " FROM " + docTable
+                                                              + " WHERE " + docPk
+                                                                          + " IN (" + docInIds + ")) as docs");
+        } else {
+            documentJdbcRddSupplier.from("(SELECT " + docPk + ", "
+                                                    + docName + ", "
+                                                    + docCont + " FROM " + docTable + ")) as docs");
+        }
 
-                        try {
-                            IConverter<InputStream, String> textConverter = new TikaConverter(ac.getStringProcessManager());
-                            String content = textConverter.parse(rawContent.getBinaryStream());
-                            Integer[] hashedShingles = new ShinglesAlgorithm(content, plachertConf.getShinglesAlgorithmShingleSize()).getHashedShingles();
+        // [#D2] Processing documents with shingles algorithm and remapping
+        JavaRDD<Row> documentDataSupply = documentJdbcRddSupplier.supply();
 
-                            documents.add(new Document(documentId, name, true, hashedShingles));
-                        } catch (ConverterException e) {
-                            LOGGER.error("Failed to parse document #{}, with name {}", documentId, name);
-                        }
-                    } while (resultSet.next());
-                    return documents.toArray(new Document[documents.size()]);
-                } catch (SQLException e) {
-                    throw new PlachertException("Failed to parse values from db", e);
-                } catch (IOException e) {
-                    throw new PlachertException("Failed to get shingles from blob", e);
+        JavaPairRDD<Integer, DocumentMeta> newShingleDocumentMetaPairRDD = documentDataSupply.flatMapToPair(row -> {
+            int documentId = row.getInt(0);
+            String documentName = row.getString(1);
+            byte[] rawContent = row.<byte[]>getAs(2);
+            try {
+                IConverter<InputStream, String> textConverter = new TikaConverter(ac.getStringProcessManager());
+                String content = textConverter.parse(new ByteArrayInputStream(rawContent));
+
+                ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(content, plachertConf.getShinglesAlgorithmShingleSize());
+                Set<Integer> hashedShingles = shinglesAlgorithm.getDistinctHashedShingles();
+
+                List<Tuple2<Integer, DocumentMeta>> shingleDocumentMetaTuplesList = new LinkedList<>();
+                for (Integer shingle : hashedShingles) {
+                    shingleDocumentMetaTuplesList.add(new Tuple2<>(shingle, new DocumentMeta(documentId, documentName, true, hashedShingles.size())));
                 }
+
+                return shingleDocumentMetaTuplesList;
+            } catch (ConverterException e) {
+                LOGGER.error("Failed to parse document #{}, with documentName {}", documentId, documentName);
             }
+            return null;
         });
 
-        // [#D1.2] Processing documents with shingles algorithm and remapping
-        JavaPairRDD<Integer, DocumentMeta> newShingleDocumentMetaPairRDD = documentsRDD.flatMapToPair(documents -> {
-            List<Tuple2<Integer, DocumentMeta>> shingleDocumentMetaTuplesList = new LinkedList<>();
+        // [#S1] Building supplier object for old shingles
+        JdbcRddSupplier shingesJdbcRddSupplier = new JdbcRddSupplier(sc, ac);
+        String shglPk = plachertConf.getShinglesPrimaryKey();
+        String shgTable = plachertConf.getShinglesTable();
+        String shgCnt = plachertConf.getShinglesContentColumn();
+        shingesJdbcRddSupplier.from("(SELECT " + shglPk + ", "
+                                               + shgCnt + " FROM " + shgTable
+                                                                   + ") AS SNH")
+                              .primaryKey(shglPk)
+                              .calculateBounds();
 
-            for (Document document : documents) {
-                Integer[] shingles = document.getShingles();
-                for (Integer shingle : shingles) {
-                    shingleDocumentMetaTuplesList.add(new Tuple2<>(shingle, document.getDocumentMeta()));
-                }
-            }
+        JavaRDD<Row> shingesDataSupply = shingesJdbcRddSupplier.supply();
 
-            return shingleDocumentMetaTuplesList;
-        });
-
-        // [#S0] Building supplier object for shingles
-        MappedDataSupplier<Shingle[]> mappedShingleDataSupplierJob = new MappedDataSupplier<>(sc, ac, Shingle[].class);
-        mappedShingleDataSupplierJob.from(plachertConf.getShinglesTable())
-                                    .primaryKey(plachertConf.getShinglesPrimaryKey())
-                                    .autoUpperBound(true);
-
-        // [#S1.1] Supplying old shingles to Spark system
-        JavaRDD<Shingle[]> shinglesRDD = mappedShingleDataSupplierJob.get(new SparkFunction<ResultSet, Shingle[]>() {
-            @Override
-            public Shingle[] apply(ResultSet resultSet) {
-                List<Shingle> shingles = new LinkedList<>();
-                try {
-                    while (resultSet.next()) {
-                        int documentId = resultSet.getInt(plachertConf.getDocumentIds());
-                        Integer shingle = resultSet.getInt(plachertConf.getShinglesContentColumn());
-                        shingles.add(new Shingle(documentId, shingle));
-                    }
-                    return shingles.toArray(new Shingle[shingles.size()]);
-                } catch (SQLException e) {
-                    throw new PlachertException("Failed to parse values from db", e);
-                }
-            }
-        });
-
-        // [#S1.2] Remapping old shingles
-        JavaPairRDD<Integer, DocumentMeta> oldShingleDocumentMetaPairRDD = shinglesRDD.flatMapToPair(shingles -> {
-            List<Tuple2<Integer, DocumentMeta>> shingleDocumentMetaTuplesList = new LinkedList<>();
-
-            for (Shingle shingleObj : shingles) {
-                Integer shingle = shingleObj.getShingle();
-                DocumentMeta documentMeta = shingleObj.getDocumentMeta();
-
-                shingleDocumentMetaTuplesList.add(new Tuple2<>(shingle, documentMeta));
-            }
-
-            return shingleDocumentMetaTuplesList;
-        });
+        // [#S2] Supplying old shingles to Spark system
+        JavaPairRDD<Integer, DocumentMeta> oldShinglesRDD = shingesDataSupply.mapToPair(row -> new Tuple2<>(row.getInt(2), new DocumentMeta(row.getInt(1))));
 
         // [#2] Uniting old shingles and newly created from documents RDDs'
-        JavaPairRDD<Integer, DocumentMeta> unitedShingleDocumentMetaPairRDD = oldShingleDocumentMetaPairRDD.union(newShingleDocumentMetaPairRDD);
+        JavaPairRDD<Integer, DocumentMeta> unitedShingleDocumentMetaPairRDD = oldShinglesRDD.union(newShingleDocumentMetaPairRDD);
 
         // [#3] Grouping documents with same shingles
         JavaPairRDD<Integer, Iterable<DocumentMeta>> groupedShingleDocumentMetasPairRDD = unitedShingleDocumentMetaPairRDD.groupByKey();
 
         // [#4] Filtering tuples that don’t have tag of the document we are checking (marked)
         JavaPairRDD<Integer, Iterable<DocumentMeta>> filteredShingleDocumentMetasPairRDD = groupedShingleDocumentMetasPairRDD.filter(shingleDocumentMetaTuple -> {
-            boolean leftRecord = false;
-            for (DocumentMeta metadata : shingleDocumentMetaTuple._2()) {
-                if (metadata.isMarked()) {
-                    leftRecord = true;
-                    break;
-                }
-            }
-            return leftRecord;
+            Iterable<DocumentMeta> unfilteredDocMetas = shingleDocumentMetaTuple._2();
+            return StreamSupport.stream(unfilteredDocMetas.spliterator(), false).anyMatch(DocumentMeta::isMarked);
         });
-
-        filteredShingleDocumentMetasPairRDD = filteredShingleDocumentMetasPairRDD.cache();
 
         // [#5] Saving new shingles into database
         if (!plachertConf.isNoSave()) {
@@ -252,7 +214,7 @@ public class PlachertSparkDriver implements Serializable {
                 Iterable<DocumentMeta> documentMetas = shingleDocumentsMetaDataTuple._2();
                 int size = ((Collection<?>) documentMetas).size();
                 if (size == 1) {
-                    try (Connection connection = ac.getJDBCConnection()) {
+                    try (Connection connection = ac.buildJdbcConnection()) {
                         Integer shingleHash = shingleDocumentsMetaDataTuple._1();
                         int documentId = documentMetas.iterator().next().getDocumentId();
 
@@ -304,6 +266,7 @@ public class PlachertSparkDriver implements Serializable {
                 for (Result r : results) {
                     DocumentMeta metadata = r.getMetadata();
                     outputBuilder.append("  -> Document #").append(metadata.getDocumentId()).append(" (").append(metadata.getName()).append(") \n");
+                    outputBuilder.append("     Total shingles: ").append(metadata.getShinglesAmount()).append("\n");
                     outputBuilder.append("     Coincides: ").append(r.getCoincidences()).append("\n");
                     outputBuilder.append("     PLAGIARISM LEVEL: ").append((int) r.getDuplicationLevel()).append("% \n");
                     outputBuilder.append("\n");

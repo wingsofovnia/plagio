@@ -2,22 +2,34 @@ package ua.edu.sumdu.dl.algorithm;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author superuser
  *         Created 27-Mar-15
  */
 public class ShinglesAlgorithm implements Serializable {
-    private String text;
-    private int shingleSize;
+    private final String text;
+    private final int shingleSize;
 
     public ShinglesAlgorithm(String text, int shingleSize) {
         this.shingleSize = shingleSize;
         this.text = text;
     }
 
-    public Integer[] getHashedShingles(int shingleSize) throws IOException {
-        String[] textShingles = getTextShingles(shingleSize);
+    public Set<Integer> getDistinctHashedShingles() {
+        String[] textShingles = getTextShingles();
+        Set<Integer> hashedShingles = new HashSet<>(textShingles.length);
+
+        for (String shingle : textShingles)
+            hashedShingles.add(shingle.hashCode());
+
+        return hashedShingles;
+    }
+
+    public Integer[] getHashedShingles() throws IOException {
+        String[] textShingles = getTextShingles();
         Integer[] hashedShingles = new Integer[textShingles.length];
 
         for (int i = 0; i < hashedShingles.length; i++)
@@ -26,11 +38,7 @@ public class ShinglesAlgorithm implements Serializable {
         return hashedShingles;
     }
 
-    public Integer[] getHashedShingles() throws IOException {
-        return getHashedShingles(this.shingleSize);
-    }
-
-    public String[] getTextShingles(int shingleSize) {
+    public String[] getTextShingles() {
         String[] words = this.text.split("\\s+");
         int shinglesAmount = words.length - shingleSize + 1;
         if (shinglesAmount < 1)
@@ -48,9 +56,5 @@ public class ShinglesAlgorithm implements Serializable {
             stringBuffer.setLength(0);
         }
         return shingles;
-    }
-
-    public String[] getTextShingles() {
-        return getTextShingles(this.shingleSize);
     }
 }
