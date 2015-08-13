@@ -17,8 +17,8 @@ public class PlacerkConf implements Serializable {
         APP_HWCORES("application.hardware.cores"),
         APP_DEBUG("application.mode.debug"),
         APP_VERBOSE("application.mode.verbose"),
-        APP_CACHE("application.mode.no_save"),
-        APP_IO_CACHE("application.output.cache"),
+        APP_CACHE("application.mode.cache"),
+        APP_IO_CACHE("application.io.cache"),
         APP_IO_INPUT("application.input.documents"),
         APP_ALG_SHINGLE_SIZE("processing.shingles.shingle_size");
 
@@ -73,11 +73,12 @@ public class PlacerkConf implements Serializable {
     }
 
     public Property getProperty(Key prop, String defaultValue) {
-        if (!hasProperty(prop))
+        if (!hasProperty(prop)) {
+            if (defaultValue == null)
+                return null;
             return new Property(defaultValue);
+        }
 
-        if (defaultValue == null)
-            return null;
         return new Property(this.properties.getProperty(prop.getTag()));
     }
 

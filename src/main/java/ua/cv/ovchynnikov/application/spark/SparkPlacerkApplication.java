@@ -1,5 +1,6 @@
 package ua.cv.ovchynnikov.application.spark;
 
+import org.apache.hadoop.mapred.InvalidInputException;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,8 +18,10 @@ import ua.cv.ovchynnikov.pojo.Result;
 import ua.cv.ovchynnikov.pojo.ShingleMeta;
 import ua.cv.ovchynnikov.processing.algorithm.ShinglesAlgorithm;
 
-import java.io.File;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -34,8 +37,10 @@ public class SparkPlacerkApplication implements PlacerkApplication {
 
     @Override
     public List<Result> run(PlacerkConf appConf) {
-        PlacerkConf.Property debug = appConf.getProperty(Key.APP_DEBUG);
-        if (debug != null && debug.asBoolean()) {
+        final Boolean isCacheEnabled = appConf.getProperty(Key.APP_CACHE, "false").asBoolean();
+        final Boolean isDebugEnabled = appConf.getProperty(Key.APP_DEBUG, "true").asBoolean();
+
+        if (isDebugEnabled) {
             LOGGER.info("Debug mode is ON");
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             org.apache.logging.log4j.core.config.Configuration conf = ctx.getConfiguration();
@@ -52,14 +57,15 @@ public class SparkPlacerkApplication implements PlacerkApplication {
         }
 
         // [Init] Building contexts
-        LOGGER.info("Creating Spark Context, running Spark driver ...");
+        LOGGER.info("Creating Spark Context ...");
         SparkConf sparkConf = new SparkConf().setAppName(SPARK_APP_NAME);
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         LOGGER.info("Spark Context has been successfully created.");
 
         // [#S1] Supplying new shingles to Spark system
+        LOGGER.info("Supplying new shingles to Spark system ... ");
         JavaPairRDD<String, String> docPathContentPRDD = sc.wholeTextFiles(appConf.getProperty(Key.APP_IO_INPUT).asString(),
-                appConf.getProperty(Key.APP_HWCORES).asInt());
+                                                                           appConf.getProperty(Key.APP_HWCORES).asInt());
 
         JavaPairRDD<Integer, Meta> shingleMetaPairRDD = docPathContentPRDD.flatMapToPair(pathContent -> {
             String path = pathContent._1();
@@ -69,30 +75,32 @@ public class SparkPlacerkApplication implements PlacerkApplication {
             Set<Integer> hashedShingles = shinglesAlgorithm.getDistinctHashedShingles();
 
             return hashedShingles.stream()
-                    .map(shingle -> new Tuple2<>(shingle, (Meta) new DocumentMeta(path, hashedShingles.size())))
-                    .collect(Collectors.toCollection(LinkedList::new));
+                                 .map(shingle -> new Tuple2<>(shingle, (Meta) new DocumentMeta(path, hashedShingles.size())))
+                                 .collect(Collectors.toCollection(LinkedList::new));
         });
 
         // [#S1] Supplying old shingles to Spark system
-        if (appConf.hasProperty(Key.APP_IO_CACHE)) {
-            String cacheDir = appConf.getProperty(Key.APP_IO_CACHE).asString();
+        if (isCacheEnabled) {
+            LOGGER.info("Cache system enabled. Supplying old shingles to Spark system.");
+            final PlacerkConf.Property cacheDirProp = appConf.getProperty(Key.APP_IO_CACHE, null);
+            if (cacheDirProp != null) {
+                final String cacheDir = cacheDirProp.asString() + "*";
+                LOGGER.debug("Cache dir = " + cacheDir);
 
-            File[] hadoopFiles = new File(cacheDir).listFiles(File::isDirectory);
-            if (hadoopFiles.length > 0) {
-                String filesToLoad = String.join(",", Arrays.stream(hadoopFiles)
-                        .map(f -> cacheDir + File.separator + f.getName() + File.separator)
-                        .toArray(String[]::new));
+                try {
+                    JavaRDD<String> shglStrings = sc.textFile(cacheDir, appConf.getProperty(Key.APP_HWCORES).asInt());
+                    JavaPairRDD<Integer, Meta> shingles = shglStrings.mapToPair(strHash -> new Tuple2<>(Integer.valueOf(strHash), (Meta) new ShingleMeta()));
 
-                JavaRDD<String> shglStrings = sc.textFile(filesToLoad, appConf.getProperty(Key.APP_HWCORES).asInt());
-
-                JavaPairRDD<Integer, Meta> shingles = shglStrings.mapToPair(strHash -> new Tuple2<>(Integer.valueOf(strHash), (Meta) new ShingleMeta()));
-
-                LOGGER.error("OLD: " + shingles.count());
-                // [#2] Uniting old shingles and newly created from documents RDDs'
-                shingleMetaPairRDD = shingleMetaPairRDD.union(shingles);
-                LOGGER.error(filesToLoad);
+                    if (isDebugEnabled) {
+                        LOGGER.debug("Loaded cached records = " + shingles.count());
+                    }
+                    // [#2] Uniting old shingles and newly created from documents RDDs'
+                    shingleMetaPairRDD = shingleMetaPairRDD.union(shingles);
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to load cache data: " + e.getMessage());
+                }
             } else {
-                LOGGER.warn("No cached shingles found");
+                LOGGER.error("Cache enabled, but cache dir is undefined");
             }
         }
 
@@ -106,30 +114,27 @@ public class SparkPlacerkApplication implements PlacerkApplication {
         });
 
         // [#5] Saving new shingles into
-        PlacerkConf.Property noSave = appConf.getProperty(Key.APP_CACHE);
-        if (noSave == null || !noSave.asBoolean()) {
-            LOGGER.info("Saving new shingles into cache");
+        if (isCacheEnabled) {
+            LOGGER.info("Saving new shingles into cache ... ");
             JavaRDD<Integer> newShingles = groupedUnitedShingleMeta.filter(shingleMetas -> ((Collection<?>) shingleMetas._2()).size() == 1)
-                    .map(shingleMetas -> shingleMetas._1())
-                    .cache();
-
-            long newRecords = newShingles.count();
-            LOGGER.info("New records: " + newRecords);
-            if (newRecords > 0) {
-                String outputPath = appConf.getProperty(Key.APP_IO_CACHE).asString() + "/" + System.currentTimeMillis() + "/";
-                newShingles.saveAsTextFile(outputPath);
-            } else {
-                LOGGER.info("No new shingles has been cached");
+                                                                   .map(shingleMetas -> shingleMetas._1());
+            if (isDebugEnabled) {
+                long newRecords = newShingles.count();
+                LOGGER.debug("New shingles from new documents = " + newRecords);
             }
+
+            String outputPath = appConf.getProperty(Key.APP_IO_CACHE).asString() + "/" + System.currentTimeMillis() + "/";
+            newShingles.saveAsTextFile(outputPath);
+            LOGGER.info("New shingles has been saved into cache dir.");
         } else {
-            LOGGER.info("No-save mode is ENABLED, no documents' shingles will be cached.");
+            LOGGER.info("Cache mode is disabled, no documents' shingles will be cached.");
         }
 
         // [#6] Mapping documents with 1, if in their tuple are neighbors (duplicated shingles), 0 if no. Filtering non-marked documents
         JavaPairRDD<DocumentMeta, Integer> metaCoincides = filteredGroupedUnitedShingleMeta.flatMapToPair(shingleMetasTuple -> {
             Iterable<Meta> metas = shingleMetasTuple._2();
             int coincides = (int) StreamSupport.stream(metas.spliterator(), false)
-                    .count();
+                                               .count();
             return StreamSupport.stream(metas.spliterator(), false)
                                 .filter(e -> (e instanceof DocumentMeta))
                                 .map(e -> new Tuple2<>((DocumentMeta) e, coincides > 1 ? 1 : 0))
