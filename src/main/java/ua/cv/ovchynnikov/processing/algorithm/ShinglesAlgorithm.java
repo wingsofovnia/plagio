@@ -1,9 +1,11 @@
-package ua.edu.sumdu.dl.algorithm;
+package ua.cv.ovchynnikov.processing.algorithm;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author superuser
@@ -19,39 +21,35 @@ public class ShinglesAlgorithm implements Serializable {
     }
 
     public Set<Integer> getDistinctHashedShingles() {
-        String[] textShingles = getTextShingles();
-        Set<Integer> hashedShingles = new HashSet<>(textShingles.length);
+        List<String> textShingles = getTextShingles();
 
-        for (String shingle : textShingles)
-            hashedShingles.add(shingle.hashCode());
-
-        return hashedShingles;
+        return textShingles.stream()
+                           .map(String::hashCode)
+                           .collect(Collectors.toSet());
     }
 
-    public Integer[] getHashedShingles() throws IOException {
-        String[] textShingles = getTextShingles();
-        Integer[] hashedShingles = new Integer[textShingles.length];
+    public List<Integer> getHashedShingles() throws IOException {
+        List<String> textShingles = getTextShingles();
 
-        for (int i = 0; i < hashedShingles.length; i++)
-            hashedShingles[i] = textShingles[i].hashCode();
-
-        return hashedShingles;
+        return textShingles.stream()
+                           .map(String::hashCode)
+                           .collect(Collectors.toList());
     }
 
-    public String[] getTextShingles() {
+    public List<String> getTextShingles() {
         String[] words = this.text.split("\\s+");
         int shinglesAmount = words.length - shingleSize + 1;
         if (shinglesAmount < 1)
             throw new IllegalArgumentException("Text contains not enough words to get even 1 shingle: " + text);
 
         StringBuilder stringBuffer = new StringBuilder("");
-        String[] shingles = new String[shinglesAmount];
+        List<String> shingles = new ArrayList<>(shinglesAmount);
         for (int i = 0; i < shinglesAmount; i++) {
             for (int j = i; j < shingleSize + i - 1; j++)
                 stringBuffer.append(words[j]).append(" ");
 
             stringBuffer.append(words[(shingleSize + i - 1)]);
-            shingles[i] = new String(stringBuffer);
+            shingles.add(new String(stringBuffer));
 
             stringBuffer.setLength(0);
         }

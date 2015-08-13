@@ -2,91 +2,56 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ua.edu.sumdu.dl</groupId>
+    <groupId>ua.cv.ovchynnikov</groupId>
     <artifactId>plachert</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.2</version>
     <packaging>jar</packaging>
 
-    <name>plachert</name>
-
-    <repositories>
-        <repository>
-            <id>sonatype-oss-public</id>
-            <url>https://oss.sonatype.org/content/groups/public/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+    <name>Plachert</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <dependencies.apache.spark.core.version>1.3.1</dependencies.apache.spark.core.version>
-        <dependencies.apache.spark.sql.version>1.3.1</dependencies.apache.spark.sql.version>
-        <dependencies.apache.tika.core.version>1.7</dependencies.apache.tika.core.version>
-        <dependencies.org.apache.tika.parsers.version>1.7</dependencies.org.apache.tika.parsers.version>
-        <dependencies.log4j.core.version>2.2</dependencies.log4j.core.version>
-        <dependencies.log4j.api.version>2.2</dependencies.log4j.api.version>
-        <dependencies.sanityinc.jargs>2.0-SNAPSHOT</dependencies.sanityinc.jargs>
-        <dependencies.moparisthebest.junidecode.version>0.1.1</dependencies.moparisthebest.junidecode.version>
-        <dependencies.mysql-connector-java.version>5.1.35</dependencies.mysql-connector-java.version>
+        <dep.apache.spark.core>1.3.1</dep.apache.spark.core>
+        <dep.apache.spark.sql>1.3.1</dep.apache.spark.sql>
+        <dep.log4j.core>2.2</dep.log4j.core>
+        <dep.log4j.api>2.2</dep.log4j.api>
+        <dep.test.junit>4.12</dep.test.junit>
 
-        <build.org.apache.maven.plugins.maven-assembly-plugin.version>
-            2.5.3
-        </build.org.apache.maven.plugins.maven-assembly-plugin.version>
+        <build.org.apache.maven-assembly-plugin>2.5.3</build.org.apache.maven-assembly-plugin>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.10</artifactId>
-            <version>${dependencies.apache.spark.core.version}</version>
+            <version>${dep.apache.spark.core}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.10</artifactId>
-            <version>${dependencies.apache.spark.sql.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>${dependencies.apache.tika.core.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-parsers</artifactId>
-            <version>${dependencies.org.apache.tika.parsers.version}</version>
+            <version>${dep.apache.spark.sql}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>${dependencies.log4j.core.version}</version>
+            <version>${dep.log4j.core}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
-            <version>${dependencies.log4j.api.version}</version>
+            <version>${dep.log4j.api}</version>
         </dependency>
+
         <dependency>
-            <groupId>com.sanityinc</groupId>
-            <artifactId>jargs</artifactId>
-            <version>${dependencies.sanityinc.jargs}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.moparisthebest</groupId>
-            <artifactId>junidecode</artifactId>
-            <version>${dependencies.moparisthebest.junidecode.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${dependencies.mysql-connector-java.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${dep.test.junit}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -97,7 +62,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>${build.org.apache.maven.plugins.maven-assembly-plugin.version}</version>
+                <version>${build.org.apache.maven-assembly-plugin}</version>
                 <configuration>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>

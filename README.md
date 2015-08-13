@@ -66,7 +66,7 @@ Usage: PlachertSparkDriver [--debug] - enable debug logging
                            [--output] - results output file
                            [--silent] - disable results output
                            [--verbose] - enable spark logging
-                           [--no-save] - do not save new documents' shingles into db
+                           [--no-save] - do not save new documents' shinglesAmount into db
                            [--documents] - documents' ids as CVS for IN query (10,20...)
 ```             
 
@@ -81,7 +81,7 @@ For example:
   --debug --documents 1,4 --no-save
 ```
 
-will run **Plachert** in debug mode for documents with ids {1,4} and will not save newly created shingles into database.
+will run **Plachert** in debug mode for documents with ids {1,4} and will not save newly created shinglesAmount into database.
 
 
 ## License
