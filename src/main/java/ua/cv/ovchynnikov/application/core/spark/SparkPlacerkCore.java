@@ -1,4 +1,4 @@
-package ua.cv.ovchynnikov.application.spark;
+package ua.cv.ovchynnikov.application.core.spark;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -9,7 +9,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
-import ua.cv.ovchynnikov.application.PlacerkApplication;
+import ua.cv.ovchynnikov.application.PlacerkCore;
 import ua.cv.ovchynnikov.application.config.PlacerkConf;
 import ua.cv.ovchynnikov.pojo.Meta;
 import ua.cv.ovchynnikov.pojo.Result;
@@ -28,9 +28,9 @@ import static ua.cv.ovchynnikov.application.config.PlacerkConf.Key;
  * @author superuser
  *         Created 27-Mar-15
  */
-public class SparkPlacerkApplication implements PlacerkApplication {
+public class SparkPlacerkCore implements PlacerkCore {
     private static final String SPARK_APP_NAME = "io.SparkPlacerkApplication";
-    private static final Logger LOGGER = LogManager.getLogger(SparkPlacerkApplication.class);
+    private static final Logger LOGGER = LogManager.getLogger(SparkPlacerkCore.class);
 
     @Override
     public List<Result> run(PlacerkConf appConf) {
@@ -86,7 +86,7 @@ public class SparkPlacerkApplication implements PlacerkApplication {
 
                 try {
                     final JavaRDD<Object> rawCachedObjects = sc.objectFile(cacheDir, appConf.getProperty(Key.APP_HWCORES).asInt());
-                    JavaPairRDD<Integer, Meta> cache = rawCachedObjects.flatMapToPair(rawCachedObject -> {
+                    final JavaPairRDD<Integer, Meta> cache = rawCachedObjects.flatMapToPair(rawCachedObject -> {
                         final Tuple2<Integer, Iterable<Meta>> cachedMetaTuple = (Tuple2<Integer, Iterable<Meta>>) rawCachedObject;
                         final Integer cachedShingle = cachedMetaTuple._1();
                         final Iterable<Meta> cachedMetas = cachedMetaTuple._2();

@@ -9,6 +9,6 @@ import java.util.List;
  * @author superuser
  *         Created 13-Aug-15
  */
-public interface PlacerkApplication {
+public interface PlacerkCore {
     List<Result> run(final PlacerkConf appConf);
 }

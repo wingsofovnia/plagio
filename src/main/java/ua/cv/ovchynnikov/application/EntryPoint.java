@@ -16,16 +16,16 @@ import static ua.cv.ovchynnikov.application.config.PlacerkConf.Key;
  */
 public class EntryPoint {
     private static final Logger LOGGER = LogManager.getLogger(EntryPoint.class);
-    private static final String APP_CONFIG = "config.properties";
-    private static final String DEFAULT_APP_CORE = "ua.cv.ovchynnikov.application.spark.SparkPlacerkApplication";
+    private static final String DEFAULT_APP_CONFIG = "config.properties";
+    private static final String DEFAULT_APP_CORE = "ua.cv.ovchynnikov.application.core.spark.SparkPlacerkCore";
 
     public static void main(String[] args) {
-        final PlacerkConf cfg = new PlacerkConf(args.length > 0 ? args[0] : APP_CONFIG);
+        final PlacerkConf cfg = new PlacerkConf(args.length > 0 ? args[0] : DEFAULT_APP_CONFIG);
 
         final String appClass = cfg.getProperty(Key.APP_CORE, DEFAULT_APP_CORE).asString();
-        PlacerkApplication placerkApp;
+        PlacerkCore placerkApp;
         try {
-            placerkApp = (PlacerkApplication) Class.forName(appClass).newInstance();
+            placerkApp = (PlacerkCore) Class.forName(appClass).newInstance();
         } catch (Exception e) {
             throw new ApplicationException("Failed to init Placerk Core", e);
         }
