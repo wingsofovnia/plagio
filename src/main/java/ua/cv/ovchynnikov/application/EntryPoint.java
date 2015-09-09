@@ -38,7 +38,7 @@ public class EntryPoint {
             StringBuilder outputBuilder = new StringBuilder();
             outputBuilder.append("#-------------------------------------------# \n");
             for (Result r : results) {
-                outputBuilder.append("  -> Document #").append(r.getDocPath()).append("\n");
+                outputBuilder.append("  -> Document #").append(r.getDocName()).append("\n");
                 outputBuilder.append("     Total shingles: ").append(r.getDocShingles()).append("\n");
                 outputBuilder.append("     Coincides: ").append(r.getCoincidences()).append("\n");
                 outputBuilder.append("     PLAGIARISM LEVEL: ").append((int) r.getDuplicationLevel()).append("% \n");
