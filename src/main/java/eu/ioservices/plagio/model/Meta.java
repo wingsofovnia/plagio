@@ -1,4 +1,4 @@
-package ua.cv.ovchynnikov.pojo;
+package eu.ioservices.plagio.model;
 
 import java.io.Serializable;
 

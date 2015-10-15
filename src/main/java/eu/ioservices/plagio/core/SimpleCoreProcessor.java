@@ -1,12 +1,11 @@
-package ua.cv.ovchynnikov.application.core;
+package eu.ioservices.plagio.core;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import ua.cv.ovchynnikov.application.PlacerkCore;
-import ua.cv.ovchynnikov.application.config.PlacerkConf;
-import ua.cv.ovchynnikov.pojo.Meta;
-import ua.cv.ovchynnikov.pojo.Result;
-import ua.cv.ovchynnikov.processing.algorithm.ShinglesAlgorithm;
+import eu.ioservices.plagio.config.AppConfiguration;
+import eu.ioservices.plagio.model.Meta;
+import eu.ioservices.plagio.model.Result;
+import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,13 +17,13 @@ import java.util.*;
  * @author superuser
  *         Created 09-Sep-15
  */
-public class SimplePlacerkCore implements PlacerkCore {
-    private static final Logger LOGGER = LogManager.getLogger(SimplePlacerkCore.class);
+public class SimpleCoreProcessor implements CoreProcessor {
+    private static final Logger LOGGER = LogManager.getLogger(SimpleCoreProcessor.class);
     private Map<Meta, Iterable<Integer>> dataStore = new HashMap<>();
 
     @Override
-    public List<Result> run(PlacerkConf appConf) {
-        final String inputDir = appConf.getProperty(PlacerkConf.Key.APP_IO_INPUT).asString();
+    public List<Result> process(AppConfiguration appConfiguration) {
+        final String inputDir = appConfiguration.getProperty(AppConfiguration.Key.APP_IO_INPUT).asString();
         final String[] inputFileNames = new File(inputDir).list();
 
         try {
@@ -32,7 +31,7 @@ public class SimplePlacerkCore implements PlacerkCore {
                 final byte[] rawInputFileContent = Files.readAllBytes(Paths.get(inputDir + inputFileName));
                 final String inputFileContent = new String(rawInputFileContent, "UTF-8");
 
-                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(inputFileContent, appConf.getProperty(PlacerkConf.Key.APP_ALG_SHINGLE_SIZE).asInt());
+                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(inputFileContent, appConfiguration.getProperty(AppConfiguration.Key.APP_ALG_SHINGLE_SIZE).asInt());
                 final List<Integer> shingles = shinglesAlgorithm.getHashedShingles();
 
                 dataStore.put(new Meta(inputFileName, shingles.size()), shingles);

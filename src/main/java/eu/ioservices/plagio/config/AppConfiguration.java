@@ -1,4 +1,4 @@
-package ua.cv.ovchynnikov.application.config;
+package eu.ioservices.plagio.config;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
  * @author superuser
  *         Created 10-Aug-15
  */
-public class PlacerkConf implements Serializable {
+public class AppConfiguration implements Serializable {
     public static enum Key {
         APP_CORE("application.core.class"),
         APP_HWCORES("application.hardware.cores"),
@@ -35,7 +35,7 @@ public class PlacerkConf implements Serializable {
 
     private final Properties properties;
 
-    public PlacerkConf(String cfgFile) {
+    public AppConfiguration(String cfgFile) {
         try {
             this.properties = parseProperties(new File(cfgFile));
         } catch (IOException e) {
@@ -43,7 +43,7 @@ public class PlacerkConf implements Serializable {
         }
     }
 
-    public PlacerkConf(File cfgFile) {
+    public AppConfiguration(File cfgFile) {
         try {
             this.properties = parseProperties(cfgFile);
         } catch (IOException e) {

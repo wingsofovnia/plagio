@@ -1,6 +1,6 @@
-package ua.cv.ovchynnikov.application.config;
+package eu.ioservices.plagio.config;
 
-import ua.cv.ovchynnikov.application.ApplicationException;
+import eu.ioservices.plagio.ApplicationException;
 
 /**
  * @author superuser

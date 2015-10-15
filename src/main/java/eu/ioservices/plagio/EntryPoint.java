@@ -1,14 +1,15 @@
-package ua.cv.ovchynnikov.application;
+package eu.ioservices.plagio;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import ua.cv.ovchynnikov.application.config.PlacerkConf;
-import ua.cv.ovchynnikov.pojo.Result;
+import eu.ioservices.plagio.config.AppConfiguration;
+import eu.ioservices.plagio.core.CoreProcessor;
+import eu.ioservices.plagio.model.Result;
 
 import java.io.PrintStream;
 import java.util.List;
 
-import static ua.cv.ovchynnikov.application.config.PlacerkConf.Key;
+import static eu.ioservices.plagio.config.AppConfiguration.Key;
 
 /**
  * @author superuser
@@ -17,20 +18,20 @@ import static ua.cv.ovchynnikov.application.config.PlacerkConf.Key;
 public class EntryPoint {
     private static final Logger LOGGER = LogManager.getLogger(EntryPoint.class);
     private static final String DEFAULT_APP_CONFIG = "config.properties";
-    private static final String DEFAULT_APP_CORE = "ua.cv.ovchynnikov.application.core.spark.SparkPlacerkCore";
+    private static final String DEFAULT_APP_CORE = "ua.cv.ovchynnikov.apos.application.core.spark.SparkPlacerkCore";
 
     public static void main(String[] args) {
-        final PlacerkConf cfg = new PlacerkConf(args.length > 0 ? args[0] : DEFAULT_APP_CONFIG);
+        final AppConfiguration cfg = new AppConfiguration(args.length > 0 ? args[0] : DEFAULT_APP_CONFIG);
 
         final String appClass = cfg.getProperty(Key.APP_CORE, DEFAULT_APP_CORE).asString();
-        PlacerkCore placerkApp;
+        CoreProcessor placerkApp;
         try {
-            placerkApp = (PlacerkCore) Class.forName(appClass).newInstance();
+            placerkApp = (CoreProcessor) Class.forName(appClass).newInstance();
         } catch (Exception e) {
             throw new ApplicationException("Failed to init Placerk Core", e);
         }
 
-        List<Result> results = placerkApp.run(cfg);
+        List<Result> results = placerkApp.process(cfg);
 
         if (results.size() == 0) {
             LOGGER.error("No results has been generated! Output missed.");

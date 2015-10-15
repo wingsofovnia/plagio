@@ -1,4 +1,4 @@
-package ua.cv.ovchynnikov.application;
+package eu.ioservices.plagio;
 
 /**
  * @author superuser

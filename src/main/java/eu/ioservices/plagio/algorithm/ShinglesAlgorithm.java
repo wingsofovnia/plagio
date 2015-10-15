@@ -1,4 +1,4 @@
-package ua.cv.ovchynnikov.processing.algorithm;
+package eu.ioservices.plagio.algorithm;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -40,7 +40,7 @@ public class ShinglesAlgorithm implements Serializable {
         String[] words = this.text.split("\\s+");
         int shinglesAmount = words.length - shingleSize + 1;
         if (shinglesAmount < 1)
-            throw new IllegalArgumentException("Text contains not enough words to get even 1 shingle: " + text);
+            throw new AlgorithmException("Text contains not enough words to get even 1 shingle: " + text);
 
         StringBuilder stringBuffer = new StringBuilder("");
         List<String> shingles = new ArrayList<>(shinglesAmount);
