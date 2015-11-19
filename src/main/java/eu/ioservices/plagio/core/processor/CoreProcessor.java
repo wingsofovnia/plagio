@@ -14,5 +14,5 @@ import java.util.List;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public interface CoreProcessor {
-    List<Result> process(final AppConfiguration appConfiguration) throws CoreProcessingException;
+    List<Result> process(AppConfiguration appConfiguration) throws CoreProcessingException;
 }

@@ -1,14 +1,16 @@
 package eu.ioservices.plagio;
 
 import eu.ioservices.plagio.config.AppConfiguration;
-import eu.ioservices.plagio.core.output.ConsoleResultPublisher;
-import eu.ioservices.plagio.core.output.ResultPublisher;
+import eu.ioservices.plagio.config.SpringConfiguration;
 import eu.ioservices.plagio.core.processor.CoreProcessor;
+import eu.ioservices.plagio.core.publisher.ResultPublisher;
 import eu.ioservices.plagio.model.Result;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
-
-import static eu.ioservices.plagio.config.AppConfiguration.Key;
 
 /**
  * Entry point of Plagio application.
@@ -18,28 +20,24 @@ import static eu.ioservices.plagio.config.AppConfiguration.Key;
  *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
+
+@Component
 public class Application {
-    private static final String DEFAULT_APP_CONFIG = "config.properties";
-    private static final String DEFAULT_APP_CORE = "ua.cv.ovchynnikov.apos.application.core.spark.SparkPlacerkCore";
+    CoreProcessor coreProcessor;
+    ResultPublisher resultPublisher;
+
+    @Autowired
+    public Application(CoreProcessor coreProcessor, ResultPublisher resultPublisher) {
+        this.coreProcessor = coreProcessor;
+        this.resultPublisher = resultPublisher;
+    }
+
+    @PostConstruct
+    void process() {
+        final List<Result> process = coreProcessor.process(new AppConfiguration("config.properties"));
+    }
 
     public static void main(String[] args) {
-        final AppConfiguration cfg = new AppConfiguration(args.length > 0 ? args[0] : DEFAULT_APP_CONFIG);
-
-        final String appClass = cfg.getProperty(Key.APP_CORE, DEFAULT_APP_CORE).asString();
-        CoreProcessor placerkApp;
-        try {
-            placerkApp = (CoreProcessor) Class.forName(appClass).newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to init Placerk Core", e);
-        }
-
-        List<Result> results = placerkApp.process(cfg);
-
-        final Boolean printResults = cfg.getProperty(Key.APP_IO_RESULTS_PRINT, "false").asBoolean();
-
-        if (printResults) {
-            ResultPublisher resultPublisher = new ConsoleResultPublisher();
-            resultPublisher.publish(results);
-        }
+        AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext(SpringConfiguration.class);
     }
 }
