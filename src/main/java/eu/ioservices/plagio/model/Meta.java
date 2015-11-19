@@ -3,8 +3,13 @@ package eu.ioservices.plagio.model;
 import java.io.Serializable;
 
 /**
- * @author superuser
- *         Created 14-Aug-15
+ * Meta class describes information about document: doc's name, amount of parsed shingles and cached flag, that shows
+ * whether the document has been loaded from cache.
+ * <br/>
+ * Meta objects are {@link java.io.Serializable} because are used in distributed environment and may be replicated
+ * through Spark nodes.
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class Meta implements Serializable {
     private final String name;

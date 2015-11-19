@@ -1,12 +1,11 @@
 package eu.ioservices.plagio.config;
 
-import eu.ioservices.plagio.ApplicationException;
-
 /**
- * @author superuser
- *         Created 13-Aug-15
+ * ConfigurationException is thrown by {@link eu.ioservices.plagio.config.AppConfiguration}
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
-public class ConfigurationException extends ApplicationException {
+public class ConfigurationException extends RuntimeException {
     public ConfigurationException() {
         super();
     }

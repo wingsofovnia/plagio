@@ -8,8 +8,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * @author superuser
- *         Created 27-Mar-15
+ * This class is an implementation of w-shingling algorithm that produces set of unique hashed "shingles" (n-grams,
+ * contiguous subsequences of tokens in a document) that can be used to gauge the similarity of two documents.
+ * <br/>
+ * For example, document <b>"This is a great implementation of w-shingling"</b> with {@link ShinglesAlgorithm#shingleSize}
+ * ~ 2 can be tokenized as follows:
+ * <br/>
+ * {@link ShinglesAlgorithm#getTextShingles}:
+ * <br/>
+ * {this is, is a, a great, great implementation, implementation of, of w-shingling}
+ * <br/>
+ * {@link ShinglesAlgorithm#getHashedShingles()}:
+ * <br/>
+ * {-1345893908, 3239659, 1203262990, -1144809051, 228058373, 1459963972}
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class ShinglesAlgorithm implements Serializable {
     private final String text;

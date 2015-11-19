@@ -1,4 +1,4 @@
-package eu.ioservices.plagio.core;
+package eu.ioservices.plagio.core.processor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,8 +14,10 @@ import java.nio.file.Paths;
 import java.util.*;
 
 /**
- * @author superuser
- *         Created 09-Sep-15
+ * Simple {@link CoreProcessor} implementation that uses {@link eu.ioservices.plagio.algorithm.ShinglesAlgorithm}
+ * for determining documents' duplication level on the local computer
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class SimpleCoreProcessor implements CoreProcessor {
     private static final Logger LOGGER = LogManager.getLogger(SimpleCoreProcessor.class);
@@ -38,6 +40,7 @@ public class SimpleCoreProcessor implements CoreProcessor {
             }
         } catch (IOException e) {
             LOGGER.error("Failed to read file", e);
+            throw new CoreProcessingException(e);
         }
 
         List<Result> results = new ArrayList<>(dataStore.size());

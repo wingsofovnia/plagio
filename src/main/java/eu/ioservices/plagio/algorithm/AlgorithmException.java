@@ -1,8 +1,9 @@
 package eu.ioservices.plagio.algorithm;
 
 /**
- * @author superuser
- *         Created 15-Oct-15
+ * AlgorithmException is thrown by algorithm implementations
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class AlgorithmException extends RuntimeException {
     public AlgorithmException() {

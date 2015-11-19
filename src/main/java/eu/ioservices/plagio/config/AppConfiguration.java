@@ -8,18 +8,21 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 /**
- * @author superuser
- *         Created 10-Aug-15
+ * Plagio configuration that loads properties from *.properties file by it's name or {@link java.io.File} object
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class AppConfiguration implements Serializable {
     public static enum Key {
         APP_CORE("application.core.class"),
         APP_HWCORES("application.hardware.cores"),
-        APP_DEBUG("application.mode.debug"),
-        APP_VERBOSE("application.mode.verbose"),
-        APP_CACHE("application.mode.cache"),
-        APP_IO_CACHE("application.io.cache"),
-        APP_IO_INPUT("application.input.documents"),
+        APP_DEBUG("application.debug"),
+        APP_VERBOSE("application.verbose"),
+        APP_CACHE("application.caching"),
+        APP_IO_CACHE("application.io.path.cache"),
+        APP_IO_INPUT("application.io.path.documents"),
+        APP_IO_RESULTS_PRINT("application.io.results.print"),
+        APP_IO_RESULTS_OUTPUT("application.io.results.output"),
         APP_ALG_SHINGLE_SIZE("processing.shingles.shingle_size");
 
         private final String tag;

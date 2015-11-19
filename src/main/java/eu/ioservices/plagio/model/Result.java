@@ -3,8 +3,13 @@ package eu.ioservices.plagio.model;
 import java.io.Serializable;
 
 /**
- * @author superuser
- *         Created 13-Aug-15
+ * Result class encapsulates resulting data produced by Plagio {@link eu.ioservices.plagio.core.processor.CoreProcessor} and
+ * contains information about documents and its duplication level.
+ * <br/>
+ * Result objects are {@link java.io.Serializable} because are used in distributed environment and may be replicated
+ * through Spark nodes.
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class Result implements Serializable {
     private final String docName;

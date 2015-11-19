@@ -1,4 +1,4 @@
-package eu.ioservices.plagio.core;
+package eu.ioservices.plagio.core.processor;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -24,8 +24,10 @@ import java.util.stream.StreamSupport;
 import static eu.ioservices.plagio.config.AppConfiguration.Key;
 
 /**
- * @author superuser
- *         Created 27-Mar-15
+ * Apache Spark {@link CoreProcessor} implementation that uses {@link eu.ioservices.plagio.algorithm.ShinglesAlgorithm}
+ * for determining documents' duplication level in Apache Spark Cluster.
+ *
+ * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class SparkCoreProcessor implements CoreProcessor {
     private static final String SPARK_APP_NAME = "io.SparkPlacerkApplication";
@@ -107,6 +109,7 @@ public class SparkCoreProcessor implements CoreProcessor {
                     shingleMeta = shingleMeta.union(cache);
                 } catch (Exception e) {
                     LOGGER.warn("Failed to load cache data: " + e.getMessage());
+                    throw new CoreProcessingException(e);
                 }
             } else {
                 LOGGER.error("Cache enabled, but cache dir is undefined");
