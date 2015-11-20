@@ -1,7 +1,7 @@
-package eu.ioservices.plagio.core.output;
+package eu.ioservices.plagio.core.publishing;
 
 /**
- * CoreProcessingException is thrown by {@link eu.ioservices.plagio.core.output.ResultPublisher} implementations
+ * CoreProcessingException is thrown by {@link eu.ioservices.plagio.core.publishing.ResultPublisher} implementations
  *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */

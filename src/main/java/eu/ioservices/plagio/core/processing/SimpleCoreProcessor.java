@@ -1,17 +1,21 @@
-package eu.ioservices.plagio.core.processor;
+package eu.ioservices.plagio.core.processing;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import eu.ioservices.plagio.config.AppConfiguration;
+import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
+import eu.ioservices.plagio.config.Config;
+import eu.ioservices.plagio.config.FileBasedConfig;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.model.Result;
-import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Simple {@link CoreProcessor} implementation that uses {@link eu.ioservices.plagio.algorithm.ShinglesAlgorithm}
@@ -24,8 +28,12 @@ public class SimpleCoreProcessor implements CoreProcessor {
     private Map<Meta, Iterable<Integer>> dataStore = new HashMap<>();
 
     @Override
-    public List<Result> process(AppConfiguration appConfiguration) {
-        final String inputDir = appConfiguration.getProperty(AppConfiguration.Key.APP_IO_INPUT).asString();
+    public List<Result> process(Config config) {
+        if (!(config instanceof FileBasedConfig))
+            throw new CoreException("SimpleCoreProcessor requires FileBasedConfig");
+        FileBasedConfig plagioConf = (FileBasedConfig) config;
+
+        final String inputDir = plagioConf.getInputPath();
         final String[] inputFileNames = new File(inputDir).list();
 
         try {
@@ -33,14 +41,14 @@ public class SimpleCoreProcessor implements CoreProcessor {
                 final byte[] rawInputFileContent = Files.readAllBytes(Paths.get(inputDir + inputFileName));
                 final String inputFileContent = new String(rawInputFileContent, "UTF-8");
 
-                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(inputFileContent, appConfiguration.getProperty(AppConfiguration.Key.APP_ALG_SHINGLE_SIZE).asInt());
+                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(inputFileContent);
                 final List<Integer> shingles = shinglesAlgorithm.getHashedShingles();
 
                 dataStore.put(new Meta(inputFileName, shingles.size()), shingles);
             }
         } catch (IOException e) {
             LOGGER.error("Failed to read file", e);
-            throw new CoreProcessingException(e);
+            throw new CoreException(e);
         }
 
         List<Result> results = new ArrayList<>(dataStore.size());

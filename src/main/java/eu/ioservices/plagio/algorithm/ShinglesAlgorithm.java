@@ -25,8 +25,13 @@ import java.util.stream.Collectors;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class ShinglesAlgorithm implements Serializable {
+    private static final int DEFAULT_SHINGLE_SIZE = 4;
     private final String text;
     private final int shingleSize;
+
+    public ShinglesAlgorithm(String text) {
+        this(text, DEFAULT_SHINGLE_SIZE);
+    }
 
     public ShinglesAlgorithm(String text, int shingleSize) {
         this.shingleSize = shingleSize;

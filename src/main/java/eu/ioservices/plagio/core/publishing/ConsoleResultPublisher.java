@@ -1,4 +1,4 @@
-package eu.ioservices.plagio.core.output;
+package eu.ioservices.plagio.core.publishing;
 
 import eu.ioservices.plagio.model.Result;
 
