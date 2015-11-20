@@ -9,6 +9,7 @@ import java.util.Collection;
  *         Created 19-Nov-15
  */
 public interface ResultPublisher {
-    void publish(Result result) throws ResultPublishingException ;
-    void publish(Collection<Result> results) throws ResultPublishingException ;
+    void publish(Result result) throws ResultPublishingException;
+
+    void publish(Collection<Result> results) throws ResultPublishingException;
 }

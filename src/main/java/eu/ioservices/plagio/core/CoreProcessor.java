@@ -1,4 +1,4 @@
-package eu.ioservices.plagio.core.processing;
+package eu.ioservices.plagio.core;
 
 import eu.ioservices.plagio.config.Config;
 import eu.ioservices.plagio.model.Result;
@@ -13,6 +13,6 @@ import java.util.List;
  *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
-public interface CoreProcessor {
-    List<Result> process(Config config) throws CoreException;
+public interface CoreProcessor <C extends Config> {
+    List<Result> process(C config) throws CoreException;
 }

@@ -1,13 +1,13 @@
-package eu.ioservices.plagio.core.processing;
+package eu.ioservices.plagio.core;
 
 import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
-import eu.ioservices.plagio.config.Config;
 import eu.ioservices.plagio.config.FileBasedConfig;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.model.Result;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,25 +23,23 @@ import java.util.Map;
  *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
-public class SimpleCoreProcessor implements CoreProcessor {
+public class SimpleCoreProcessor implements CoreProcessor<FileBasedConfig> {
     private static final Logger LOGGER = LogManager.getLogger(SimpleCoreProcessor.class);
     private Map<Meta, Iterable<Integer>> dataStore = new HashMap<>();
 
     @Override
-    public List<Result> process(Config config) {
-        if (!(config instanceof FileBasedConfig))
-            throw new CoreException("SimpleCoreProcessor requires FileBasedConfig");
-        FileBasedConfig plagioConf = (FileBasedConfig) config;
-
-        final String inputDir = plagioConf.getInputPath();
-        final String[] inputFileNames = new File(inputDir).list();
+    public List<Result> process(FileBasedConfig config) throws CoreException {
+        File inputDir = new File(config.getInputPath());
+        final String[] inputFileNames = inputDir.list();
+        if (inputFileNames == null)
+            throw new CoreException("Dir " + inputDir.getAbsolutePath() + " doesn't exist!");
 
         try {
             for (String inputFileName : inputFileNames) {
-                final byte[] rawInputFileContent = Files.readAllBytes(Paths.get(inputDir + inputFileName));
-                final String inputFileContent = new String(rawInputFileContent, "UTF-8");
-
-                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(inputFileContent);
+                final byte[] rawInputFileContent = Files.readAllBytes(Paths.get(inputDir.getPath() + File.separator + inputFileName));
+                final String inputFileContent = config.converter().parse(new ByteArrayInputStream(rawInputFileContent));
+                String normalizedContent = config.stringProcessorManager().setTarget(inputFileContent).flush();
+                final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(normalizedContent);
                 final List<Integer> shingles = shinglesAlgorithm.getHashedShingles();
 
                 dataStore.put(new Meta(inputFileName, shingles.size()), shingles);
@@ -82,4 +80,5 @@ public class SimpleCoreProcessor implements CoreProcessor {
 
         return coincides;
     }
+
 }

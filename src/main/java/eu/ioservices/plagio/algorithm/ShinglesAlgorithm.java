@@ -42,33 +42,32 @@ public class ShinglesAlgorithm implements Serializable {
         List<String> textShingles = getTextShingles();
 
         return textShingles.stream()
-                           .map(String::hashCode)
-                           .collect(Collectors.toSet());
+                .map(String::hashCode)
+                .collect(Collectors.toSet());
     }
 
     public List<Integer> getHashedShingles() throws IOException {
         List<String> textShingles = getTextShingles();
 
         return textShingles.stream()
-                           .map(String::hashCode)
-                           .collect(Collectors.toList());
+                .map(String::hashCode)
+                .collect(Collectors.toList());
     }
 
     public List<String> getTextShingles() {
         String[] words = this.text.split("\\s+");
-        int shinglesAmount = words.length - shingleSize + 1;
-        if (shinglesAmount < 1)
+        int totalShingles = words.length - shingleSize + 1;
+        if (totalShingles < 1)
             throw new AlgorithmException("Text contains not enough words to get even 1 shingle: " + text);
 
-        StringBuilder stringBuffer = new StringBuilder("");
-        List<String> shingles = new ArrayList<>(shinglesAmount);
-        for (int i = 0; i < shinglesAmount; i++) {
-            for (int j = i; j < shingleSize + i - 1; j++)
+        StringBuilder stringBuffer = new StringBuilder();
+        List<String> shingles = new ArrayList<>(totalShingles);
+        for (int i = 0; i < totalShingles; i++) {
+            for (int j = i; j < i + shingleSize; j++) {
                 stringBuffer.append(words[j]).append(" ");
-
-            stringBuffer.append(words[(shingleSize + i - 1)]);
-            shingles.add(new String(stringBuffer));
-
+            }
+            stringBuffer.setLength(Math.max(stringBuffer.length() - 1, 0));
+            shingles.add(stringBuffer.toString());
             stringBuffer.setLength(0);
         }
         return shingles;

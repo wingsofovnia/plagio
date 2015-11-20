@@ -15,7 +15,7 @@ public class ConsoleResultPublisher implements ResultPublisher {
     private static OutputStream CONSOLE_OUT = System.out;
 
     @Override
-    public void publish(Result result)  throws ResultPublishingException {
+    public void publish(Result result) throws ResultPublishingException {
         publish(new ArrayList<Result>(1) {{
             add(result);
         }});

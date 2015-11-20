@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
@@ -14,16 +14,29 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
+        <dep.tika.core>1.7</dep.tika.core>
+        <dep.tika.parsers>1.7</dep.tika.parsers>
         <dep.apache.spark.core>1.3.1</dep.apache.spark.core>
         <dep.apache.spark.sql>1.3.1</dep.apache.spark.sql>
         <dep.log4j.core>2.2</dep.log4j.core>
         <dep.log4j.api>2.2</dep.log4j.api>
+        <dep.junidecode>0.1.1</dep.junidecode>
         <dep.test.junit>4.12</dep.test.junit>
 
         <build.org.apache.maven-assembly-plugin>2.5.3</build.org.apache.maven-assembly-plugin>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>${dep.tika.core}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers</artifactId>
+            <version>${dep.tika.parsers}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.10</artifactId>
@@ -45,6 +58,12 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
             <version>${dep.log4j.api}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.moparisthebest</groupId>
+            <artifactId>junidecode</artifactId>
+            <version>${dep.junidecode}</version>
         </dependency>
 
         <dependency>

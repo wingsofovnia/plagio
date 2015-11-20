@@ -1,9 +1,11 @@
 package eu.ioservices.plagio.model;
 
+import eu.ioservices.plagio.core.CoreProcessor;
+
 import java.io.Serializable;
 
 /**
- * Result class encapsulates resulting data produced by Plagio {@link eu.ioservices.plagio.core.processing.CoreProcessor} and
+ * Result class encapsulates resulting data produced by Plagio {@link CoreProcessor} and
  * contains information about documents and its duplication level.
  * <br/>
  * Result objects are {@link java.io.Serializable} because are used in distributed environment and may be replicated
@@ -23,7 +25,9 @@ public class Result implements Serializable {
         this.docName = meta.getName();
         this.docShingles = meta.getShinglesAmt();
         this.coincidences = coincidences >= 0 ? coincidences : 0;
-        this.duplicationLevel = (double) this.coincidences / this.docShingles * 100.0;
+
+        double calcDuplication = (double) this.coincidences / this.docShingles * 100.0;
+        this.duplicationLevel = calcDuplication > 100.0 ? 100.0 : calcDuplication;
     }
 
     public String getDocName() {

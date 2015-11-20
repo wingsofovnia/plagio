@@ -1,7 +1,6 @@
-package eu.ioservices.plagio.core.processing;
+package eu.ioservices.plagio.core;
 
 import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
-import eu.ioservices.plagio.config.Config;
 import eu.ioservices.plagio.config.SparkFileBasedConfig;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.model.Result;
@@ -28,17 +27,12 @@ import java.util.stream.StreamSupport;
  *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
-public class SparkCoreProcessor implements CoreProcessor {
-    private static final String SPARK_APP_NAME = "io.SparkPlacerkApplication";
+public class SparkCoreProcessor implements CoreProcessor<SparkFileBasedConfig> {
     private static final Logger LOGGER = LogManager.getLogger(SparkCoreProcessor.class);
 
     @Override
-    public List<Result> process(Config config) {
-        if (!(config instanceof SparkFileBasedConfig))
-            throw new CoreException("SparkCoreProcessor requires SparkFileBasedConfig");
-        SparkFileBasedConfig plagioConf = (SparkFileBasedConfig) config;
-
-        if (plagioConf.isDebug()) {
+    public List<Result> process(SparkFileBasedConfig config) {
+        if (config.isDebug()) {
             LOGGER.info("Debug mode is ON");
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             org.apache.logging.log4j.core.config.Configuration conf = ctx.getConfiguration();
@@ -46,7 +40,7 @@ public class SparkCoreProcessor implements CoreProcessor {
             ctx.updateLoggers(conf);
         }
 
-        if (!plagioConf.isVerbose()) {
+        if (!config.isVerbose()) {
             org.apache.log4j.Logger.getLogger("org").setLevel(org.apache.log4j.Level.OFF);
             org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.OFF);
         } else {
@@ -55,14 +49,15 @@ public class SparkCoreProcessor implements CoreProcessor {
 
         // [Init] Building contexts
         LOGGER.info("Creating Spark Context ...");
-        SparkConf sparkConf = new SparkConf().setAppName(SPARK_APP_NAME);
+        SparkConf sparkConf = new SparkConf().setAppName(config.getSparkAppName())
+                .setMaster(config.getSparkAppMaster());
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         LOGGER.info("Spark Context has been successfully created.");
 
         // [#S1] Supplying new shingles to Spark system
         LOGGER.info("Supplying new shingles to Spark system ... ");
-        JavaPairRDD<String, String> docPathContentPRDD = sc.wholeTextFiles(plagioConf.getInputPath(),
-                                                                           plagioConf.getHwCores());
+        JavaPairRDD<String, String> docPathContentPRDD = sc.wholeTextFiles(config.getInputPath(),
+                config.getHwCores());
 
         JavaPairRDD<Integer, Meta> shingleMeta = docPathContentPRDD.flatMapToPair(pathContent -> {
             String fileName = pathContent._1().substring(pathContent._1().lastIndexOf(File.separator) + 1);
@@ -72,20 +67,20 @@ public class SparkCoreProcessor implements CoreProcessor {
             List<Integer> hashedShingles = shinglesAlgorithm.getHashedShingles();
 
             return hashedShingles.stream()
-                                 .map(shingle -> new Tuple2<>(shingle, new Meta(fileName, hashedShingles.size())))
-                                 .collect(Collectors.toCollection(LinkedList::new));
+                    .map(shingle -> new Tuple2<>(shingle, new Meta(fileName, hashedShingles.size())))
+                    .collect(Collectors.toCollection(LinkedList::new));
         });
 
         // [#S1] Supplying old shingles to Spark system
-        if (plagioConf.isCaching()) {
+        if (config.isCaching()) {
             LOGGER.info("Cache system enabled. Supplying old shingles to Spark system.");
-            final String cacheDirPath = plagioConf.getCachePath();
+            final String cacheDirPath = config.getCachePath();
             if (cacheDirPath != null) {
                 final String cacheDir = cacheDirPath + "*";
                 LOGGER.debug("Cache dir = " + cacheDir);
 
                 try {
-                    final JavaRDD<Object> rawCachedObjects = sc.objectFile(cacheDir, plagioConf.getHwCores());
+                    final JavaRDD<Object> rawCachedObjects = sc.objectFile(cacheDir, config.getHwCores());
                     final JavaPairRDD<Integer, Meta> cache = rawCachedObjects.flatMapToPair(rawCachedObject -> {
                         final Tuple2<Integer, Iterable<Meta>> cachedMetaTuple = (Tuple2<Integer, Iterable<Meta>>) rawCachedObject;
                         final Integer cachedShingle = cachedMetaTuple._1();
@@ -101,7 +96,7 @@ public class SparkCoreProcessor implements CoreProcessor {
                         return shingleMetaTuples;
                     });
 
-                    if (plagioConf.isDebug()) {
+                    if (config.isDebug()) {
                         LOGGER.debug("Loaded cached records = " + cache.count());
                     }
                     // [#2] Uniting old shingles and newly created from documents RDDs'
@@ -125,16 +120,16 @@ public class SparkCoreProcessor implements CoreProcessor {
         });
 
         // [#5] Saving new shingles into
-        if (plagioConf.isCaching()) {
+        if (config.isCaching()) {
             LOGGER.info("Saving new shingles into cache ... ");
             final JavaPairRDD<Integer, Iterable<Meta>> toBeCache = groupedUnitedShingleMeta.filter(shingleMetas -> ((Collection<?>) shingleMetas._2()).size() == 1);
 
-            if (plagioConf.isDebug()) {
+            if (config.isDebug()) {
                 long newRecords = toBeCache.count();
                 LOGGER.debug("New shingles from new documents = " + newRecords);
             }
 
-            String outputPath = plagioConf.getCachePath() + "/" + System.currentTimeMillis() + "/";
+            String outputPath = config.getCachePath() + "/" + System.currentTimeMillis() + "/";
             toBeCache.saveAsObjectFile(outputPath);
             LOGGER.info("New shingles has been saved into cache dir.");
         } else {
@@ -145,11 +140,11 @@ public class SparkCoreProcessor implements CoreProcessor {
         JavaPairRDD<Meta, Integer> metaCoincides = filteredGroupedUnitedShingleMeta.flatMapToPair(shingleMetasTuple -> {
             Iterable<Meta> metas = shingleMetasTuple._2();
             int coincides = (int) StreamSupport.stream(metas.spliterator(), false)
-                                               .count();
+                    .count();
             return StreamSupport.stream(metas.spliterator(), false)
-                                .filter(e -> !e.isCached())
-                                .map(e -> new Tuple2<>(e, coincides > 1 ? 1 : 0))
-                                .collect(Collectors.toList());
+                    .filter(e -> !e.isCached())
+                    .map(e -> new Tuple2<>(e, coincides > 1 ? 1 : 0))
+                    .collect(Collectors.toList());
         });
 
         // [#7] Reducing, calculating coincidences.
