@@ -80,5 +80,4 @@ public class SimpleCoreProcessor implements CoreProcessor<FileBasedConfig> {
 
         return coincides;
     }
-
 }

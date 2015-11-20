@@ -1,56 +1,51 @@
 # Plagio
 
-Plagio is a simple implementation of Shingles Algorithm for searching near duplicate documents using **Apache Spark** engine.
+Plagio is a simple implementation of Shingles Algorithm for searching near duplicate documents **Apache Spark** engine and can be easily extended with your custom implementation.
 
-Program was developed for my thesis *Parallel and Distributed Algorithms for Large Text Datasets Analysis* as a demonstration of using distrubuted processing solutions, such as Apache Spark, for distributed textual data processing.
+Plagio was developed for my thesis *Parallel and Distributed Algorithms for Large Text Datasets Analysis* as a demonstration of using distrubuted processing solutions, such as Apache Spark, for distributed textual data processing.
 
 Program available on "as is" basis and created only for education purposes.
 
 ### Requirements
   - Java Development Kit 1.8
-  - Apache Spark 1.3.1
-  - Any database supported by JDBC
+  - Apache Spark 1.3.1 (if you want calculate document similarity with SparkCoreProcessor)
 
 ### Usage
 
-You need Apache Spark 1.3.1 and Java 1.8 installed for running **Plagio** smoothly.
+First of all, you should build Plagio application with `eu.ioservices.plagio.Plagio`:
 
-As any Apache Spark application (driver app) you can run it locally:
-
-```sh
+```java
 # Run application locally on 4 cores
-./bin/spark-submit \
-  --class eu.ioservices.plagio.EntryPoint \
-  --master local[4] \
-  /target/eu.ioservices.plagio-jar-with-dependencies.jar \
-  config.properties // optional
+Plagio pl = 
+    Plagio.builder()
+       .config(new FileBasedConfig() {{                          // (mandatory) define configuration class
+          setInputPath("Folder/with/text/files);                 // path to files to be checked
+          // ...
+       }})
+       .core(new SimpleCoreProcessor())                          // (mandatory) determine which CoreProcessor will be used for processing data
+       .stringProcessorManager(new StringProcessorManager() {{   // (optional) you may define StringProcessorManager for processing text, e.g. with
+          addProcessor(new NormalizingStringProcessor());        // NormalizingStringProcessor, that cleans text from unnecessary spaces,  
+       }})                                                       //   special characters with text transliterating
+       .converter(new TikaConverter())                           // (optional) specify InputStream2text Converter implementation
+       .build()
 ```
 
-or run it on cluster:
+and execute it:
 
-```sh
-# Run on a Spark standalone cluster
-./bin/spark-submit \
-  --class eu.ioservices.plagio.EntryPoint \
-  --master spark://myspark:7077 \
-  /target/eu.ioservices.plagio-jar-with-dependencies.jar
+```java
+List<Result> results = pl.process();
 ```
 
-The typical output looks like:
-```
-#-------------------------------------------#
-  -> Document #1 (Egzamin-answer-1.docx)
-     Coincides: 150
-     PLAGIARISM LEVEL: 89%
+It returns a list of `eu.ioservices.plagio.model.Result` objects, that encapsulates resulting data produced by Plagio
+and contains information about documents and its duplication level:
 
-  -> Document #2 (Egzamin-answer-Part.docx)
-     Coincides: 63
-     PLAGIARISM LEVEL: 100%
-
-  -> Document #3 (Tematy egzaminacyjne 2015.docx)
-     Coincides: 165
-     PLAGIARISM LEVEL: 20%
-#-------------------------------------------#
+```java
+results.stream().map(Result::toString).forEach(System.out::println);
+/*  --> STDOUT output:
+ Result{docName='test-file.txt',    docShingles=160, coincidences=92,  duplicationLevel=57.49999999999999}
+ Result{docName='test-file1_2.txt', docShingles=170, coincidences=165, duplicationLevel=97.05882352941177}
+ Result{docName='test-file2.txt',   docShingles=200, coincidences=73,  duplicationLevel=36.5}
+ */
 ```
 
 ## License

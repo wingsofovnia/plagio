@@ -44,7 +44,8 @@ public class SimpleCoreTestCase {
                 }})
                 .converter(new TikaConverter())
                 .build()
-                .results();
+                .process();
+        results.stream().map(Result::toString).forEach(System.out::println);
 
         results.stream().forEach(result -> {
             String doc = result.getDocName();
