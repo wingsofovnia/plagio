@@ -1,11 +1,11 @@
-package eu.ioservices.plagio.core.processing;
+package eu.ioservices.plagio.processing;
 
 import net.sf.junidecode.Junidecode;
 
 /**
  * Created by u548850 on 11/20/2015.
  */
-public class NormalizingStringProcessor implements StringProcessor {
+public class NormalizingTextProcessor implements TextProcessor {
     private static final String SPACE_ESCAPE_MATCH = "[\\s\\n]";
     private static final String SPEC_CHARACTERS_ESCAPE_MATCH = "[^A-Za-z0-9\\s]";
 

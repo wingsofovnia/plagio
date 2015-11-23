@@ -1,8 +1,8 @@
 # Plagio
 
-Plagio is a simple implementation of Shingles Algorithm for searching near duplicate documents **Apache Spark** engine and can be easily extended with your custom implementation.
+Plagio is a simple implementation of Shingles Algorithm for searching near duplicate documents **Apache Spark** engine.
 
-Plagio was developed for my thesis *Parallel and Distributed Algorithms for Large Text Datasets Analysis* as a demonstration of using distrubuted processing solutions, such as Apache Spark, for distributed textual data processing.
+Plagio was developed for my thesis *Parallel and Distributed Algorithms for Large Text Datasets Analysis* as a demonstration of using distributed processing solutions, such as Apache Spark, for distributed textual data processing.
 
 Program available on "as is" basis and created only for education purposes.
 
@@ -15,19 +15,17 @@ Program available on "as is" basis and created only for education purposes.
 First of all, you should build Plagio application with `eu.ioservices.plagio.Plagio`:
 
 ```java
-# Run application locally on 4 cores
 Plagio pl = 
     Plagio.builder()
-       .config(new FileBasedConfig() {{                          // (mandatory) define configuration class
-          setInputPath("Folder/with/text/files);                 // path to files to be checked
-          // ...
-       }})
-       .core(new SimpleCoreProcessor())                          // (mandatory) determine which CoreProcessor will be used for processing data
-       .stringProcessorManager(new StringProcessorManager() {{   // (optional) you may define StringProcessorManager for processing text, e.g. with
-          addProcessor(new NormalizingStringProcessor());        // NormalizingStringProcessor, that cleans text from unnecessary spaces,  
-       }})                                                       //   special characters with text transliterating
-       .converter(new TikaConverter())                           // (optional) specify InputStream2text Converter implementation
-       .build()
+          .config(new SparkFileSystemConfig())                       // (mandatory) Plagio configuration instance
+          .textProcessorManager(new TextProcessorManager() {{        // (optional) you may define Text ProcessorManager for processing text, e.g. with
+             addProcessor(new NormalizingTextProcessor());           //   NormalizingStringProcessor, that cleans text from unnecessary spaces
+          }})                                                        //   and special characters with text transliterating
+          .textConverter(new TikaConverter())                        // (optional) specify InputStream2text Converter implementation
+          .documentShinglesSupplier(new TextShinglesSupplier())      // (mandatory) supplier of new shingles to be checked
+          .cachedShinglesSupplier(new CachedTextShinglesSupplier())  // (mandatory) supplier of old, cached shingles
+          .shinglesCacheProducer(new ObjectCacheProducer())          // (mandatory) cache producer, that saves new, unknown shingles (shingles, that aren't neither found in cache nor intersect with shingles, from other new documents.
+          .build()
 ```
 
 and execute it:

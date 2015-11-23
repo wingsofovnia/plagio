@@ -5,7 +5,7 @@ package eu.ioservices.plagio.config;
  *         Created 20-Nov-15
  */
 
-public class FileBasedConfig extends GenericConfig {
+public class SparkFileSystemConfig extends Config {
     private String inputPath;
     private String cachePath;
 
