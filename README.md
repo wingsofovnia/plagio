@@ -8,7 +8,7 @@ Program available on "as is" basis and created only for education purposes.
 
 ### Requirements
   - Java Development Kit 1.8
-  - Apache Spark 1.3.1 (if you want calculate document similarity with SparkCoreProcessor)
+  - Apache Spark 1.3.1
 
 ### Usage
 
