@@ -1,4 +1,4 @@
-package eu.ioservices.plagio.core.processing;
+package eu.ioservices.plagio.processing;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -7,52 +7,52 @@ import java.util.List;
 /**
  * Created by u548850 on 11/20/2015.
  */
-public class StringProcessorManager {
-    private final List<StringProcessor> stringProcessors;
+public class TextProcessorManager {
+    private final List<TextProcessor> stringProcessors;
     private String target;
 
-    public StringProcessorManager() {
+    public TextProcessorManager() {
         this.stringProcessors = new LinkedList<>();
     }
 
-    public StringProcessorManager addProcessor(StringProcessor stringProcessor) {
+    public TextProcessorManager addProcessor(TextProcessor stringProcessor) {
         if (stringProcessor == null)
             throw new IllegalArgumentException("Processor is null");
         this.stringProcessors.add(stringProcessor);
         return this;
     }
 
-    public StringProcessorManager removeProcessor(StringProcessor stringProcessor) {
+    public TextProcessorManager removeProcessor(TextProcessor stringProcessor) {
         if (stringProcessor == null)
             throw new IllegalArgumentException("Processor is null");
         this.stringProcessors.remove(stringProcessor);
         return this;
     }
 
-    public StringProcessorManager removeProcessor(Class cls) {
+    public TextProcessorManager removeProcessor(Class cls) {
         if (cls == null)
             throw new IllegalArgumentException("Class obj is null");
-        Iterator<StringProcessor> processorIterator = this.stringProcessors.iterator();
+        Iterator<TextProcessor> processorIterator = this.stringProcessors.iterator();
         while (processorIterator.hasNext()) {
-            StringProcessor p = processorIterator.next();
+            TextProcessor p = processorIterator.next();
             if (p.getClass().equals(cls))
                 processorIterator.remove();
         }
         return this;
     }
 
-    public List<StringProcessor> getStringProcessors() {
+    public List<TextProcessor> getStringProcessors() {
         return stringProcessors;
     }
 
-    public StringProcessorManager setTarget(String target) {
+    public TextProcessorManager setTarget(String target) {
         this.target = target;
         return this;
     }
 
     public String flush() {
         String str = this.target;
-        for (StringProcessor p : getStringProcessors()) {
+        for (TextProcessor p : getStringProcessors()) {
             str = p.process(str);
         }
         return str;
