@@ -1,9 +1,7 @@
 package eu.ioservices.plagio.spark.supplier.file;
 
-import eu.ioservices.plagio.PlagioException;
 import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
-import eu.ioservices.plagio.config.Config;
-import eu.ioservices.plagio.config.SparkFileSystemConfig;
+import eu.ioservices.plagio.config.Configuration;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.spark.supplier.ShinglesSupplier;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -21,13 +19,12 @@ import java.util.stream.Collectors;
 public class TextShinglesSupplier implements ShinglesSupplier {
 
     @Override
-    public JavaPairRDD<Integer, Meta> supply(JavaSparkContext sparkContext, Config cfg) {
-        if (!(cfg instanceof SparkFileSystemConfig))
-            throw new PlagioException("TextShinglesSupplier requires SparkFileSystemConfig, but received " + cfg.getClass().getCanonicalName());
+    public JavaPairRDD<Integer, Meta> supply(JavaSparkContext sparkContext, Configuration cfg) {
 
-        SparkFileSystemConfig sparkFileSystemConfig = (SparkFileSystemConfig) cfg;
-        final JavaPairRDD<String, String> textFiles = sparkContext.wholeTextFiles(sparkFileSystemConfig.getInputPath(),
-                sparkFileSystemConfig.getHwCores());
+        final JavaPairRDD<String, String> textFiles =
+                sparkContext.wholeTextFiles(cfg.getRequiredProperty(CFG_INPUT_RAW_PATH),
+                                            cfg.getRequiredProperty(CFG_PARALLEL_FACTOR, Integer.class));
+
         return textFiles.flatMapToPair(pathContent -> {
             String fileName = pathContent._1().substring(pathContent._1().lastIndexOf(File.separator) + 1);
             String content = pathContent._2();

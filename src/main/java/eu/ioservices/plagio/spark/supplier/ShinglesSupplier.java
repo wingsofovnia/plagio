@@ -1,6 +1,6 @@
 package eu.ioservices.plagio.spark.supplier;
 
-import eu.ioservices.plagio.config.Config;
+import eu.ioservices.plagio.config.Configuration;
 import eu.ioservices.plagio.model.Meta;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -10,5 +10,9 @@ import org.apache.spark.api.java.JavaSparkContext;
  */
 @FunctionalInterface
 public interface ShinglesSupplier {
-    JavaPairRDD<Integer, Meta> supply(JavaSparkContext sparkContext, Config cfg);
+    static final String CFG_PARALLEL_FACTOR = "plagio.supply.hwcores";
+    static final String CFG_INPUT_RAW_PATH = "plagio.supply.input.raw";
+    static final String CFG_INPUT_CACHED_PATH = "plagio.supply.input.cached";
+
+    JavaPairRDD<Integer, Meta> supply(JavaSparkContext sparkContext, Configuration cfg);
 }

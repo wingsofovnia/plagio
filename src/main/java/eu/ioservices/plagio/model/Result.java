@@ -1,11 +1,9 @@
 package eu.ioservices.plagio.model;
 
-import eu.ioservices.plagio.core.CoreProcessor;
-
 import java.io.Serializable;
 
 /**
- * Result class encapsulates resulting data produced by Plagio {@link CoreProcessor} and
+ * Result class encapsulates resulting data produced by Plagio and
  * contains information about documents and its duplication level.
  * <br/>
  * Result objects are {@link java.io.Serializable} because are used in distributed environment and may be replicated

@@ -1,8 +1,6 @@
 package eu.ioservices.plagio.spark.producer.file;
 
-import eu.ioservices.plagio.PlagioException;
-import eu.ioservices.plagio.config.Config;
-import eu.ioservices.plagio.config.SparkFileSystemConfig;
+import eu.ioservices.plagio.config.Configuration;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.spark.producer.CacheProducer;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -14,12 +12,9 @@ import org.apache.spark.api.java.JavaSparkContext;
 public class ObjectCacheProducer implements CacheProducer {
 
     @Override
-    public void cache(JavaPairRDD<Integer, Meta> shingles, JavaSparkContext sparkContext, Config cfg) {
-        if (!(cfg instanceof SparkFileSystemConfig))
-            throw new PlagioException("TextShinglesSupplier requires SparkFileSystemConfig, but received " + cfg.getClass().getCanonicalName());
+    public void cache(JavaPairRDD<Integer, Meta> shingles, JavaSparkContext sparkContext, Configuration cfg) {
 
-        SparkFileSystemConfig sparkFileSystemConfig = (SparkFileSystemConfig) cfg;
-        String outputPath = sparkFileSystemConfig.getCachePath() + "/" + System.currentTimeMillis() + "/";
+        String outputPath = cfg.getRequiredProperty(CFG_OUTPUT_CACHE_PATH) + "/" + System.currentTimeMillis() + "/";
         shingles.saveAsObjectFile(outputPath);
     }
 }

@@ -1,6 +1,6 @@
 package eu.ioservices.plagio;
 
-import eu.ioservices.plagio.config.Config;
+import eu.ioservices.plagio.config.Configuration;
 import eu.ioservices.plagio.converting.TextConverter;
 import eu.ioservices.plagio.model.Meta;
 import eu.ioservices.plagio.model.Result;
@@ -31,7 +31,13 @@ import java.util.stream.StreamSupport;
  */
 public class Plagio {
     private static final Logger LOGGER = LogManager.getLogger(Plagio.class);
-    private Config config;
+    private static final String CFG_DEBUG = "plagio.core.debug";
+    private static final String CFG_CACHING = "plagio.core.caching";
+    private static final String CFG_VERBOSE = "plagio.core.verbose";
+    private static final String CFG_SPARK_NAME = "plagio.core.spark.name";
+    private static final String CFG_SPARK_MASTER = "plagio.core.spark.master";
+
+    private Configuration config;
     private boolean textProcessorManagerEnabled;
     private TextProcessorManager textProcessorManager;
     private boolean textConverterEnabled;
@@ -41,7 +47,7 @@ public class Plagio {
     private CacheProducer shinglesCacheProducer;
 
     protected Plagio(PlagioBuilder plagioBuilder) {
-        this.config = Objects.requireNonNull(plagioBuilder.config);
+        this.config = Objects.requireNonNull(plagioBuilder.configuration);
         this.textProcessorManagerEnabled = plagioBuilder.textProcessorManagerEnabled;
         this.textProcessorManager = Objects.requireNonNull(plagioBuilder.textProcessorManager);
         this.textConverterEnabled = plagioBuilder.textConverterEnabled;
@@ -52,7 +58,13 @@ public class Plagio {
     }
 
     public List<Result> process() {
-        if (config.isDebug()) {
+        boolean isDebug = config.getProperty(CFG_DEBUG, false, Boolean.class);
+        boolean isVerbose = config.getProperty(CFG_VERBOSE, false, Boolean.class);
+        boolean isCaching = config.getProperty(CFG_CACHING, false, Boolean.class);
+        String sparkAppName = config.getProperty(CFG_SPARK_NAME, this.getClass().getName());
+        String sparkMasterAddress = config.getRequiredProperty(CFG_SPARK_MASTER);
+
+        if (isDebug) {
             LOGGER.info("Debug mode is ON");
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             org.apache.logging.log4j.core.config.Configuration conf = ctx.getConfiguration();
@@ -60,7 +72,7 @@ public class Plagio {
             ctx.updateLoggers(conf);
         }
 
-        if (!config.isVerbose()) {
+        if (!isVerbose) {
             org.apache.log4j.Logger.getLogger("org").setLevel(org.apache.log4j.Level.OFF);
             org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.OFF);
         } else {
@@ -69,8 +81,8 @@ public class Plagio {
 
         // [Init] Building contexts
         LOGGER.info("Creating Spark Context ...");
-        SparkConf sparkConf = new SparkConf().setAppName(config.getSparkAppName())
-                .setMaster(config.getSparkAppMaster());
+        SparkConf sparkConf = new SparkConf().setAppName(sparkAppName)
+                                             .setMaster(sparkMasterAddress);
         JavaSparkContext sc = new JavaSparkContext(sparkConf);
         LOGGER.info("Spark Context has been successfully created.");
 
@@ -79,7 +91,7 @@ public class Plagio {
         JavaPairRDD<Integer, Meta> shingleMeta = documentShinglesSupplier.supply(sc, config);
 
         // [#S1] Supplying old shingles to Spark system
-        if (config.isCaching()) {
+        if (isCaching) {
             LOGGER.info("Cache system enabled. Supplying old shingles to Spark system.");
             JavaPairRDD<Integer, Meta> cachedShingles = cachedShinglesSupplier.supply(sc, config);
             shingleMeta = shingleMeta.union(cachedShingles);
@@ -96,13 +108,13 @@ public class Plagio {
                 });
 
         // [#5] Saving new shingles into
-        if (config.isCaching()) {
+        if (isCaching) {
             LOGGER.info("Saving new shingles into cache ... ");
             JavaPairRDD<Integer, Meta> newShingles = groupedUnitedShingleMeta
                     .filter(shingleMetas -> ((Collection<?>) shingleMetas._2()).size() == 1)
                     .mapToPair(shingleMetas -> new Tuple2<>(shingleMetas._1(), shingleMetas._2().iterator().next()));
 
-            if (config.isDebug()) {
+            if (isDebug) {
                 long newRecords = newShingles.count();
                 LOGGER.debug("New shingles from new documents = " + newRecords);
             }
@@ -139,7 +151,7 @@ public class Plagio {
     }
 
     public static class PlagioBuilder {
-        private Config config;
+        private Configuration configuration;
         private boolean textProcessorManagerEnabled;
         private TextProcessorManager textProcessorManager;
         private boolean textConverterEnabled;
@@ -148,8 +160,8 @@ public class Plagio {
         private ShinglesSupplier cachedShinglesSupplier;
         private CacheProducer shinglesCacheProducer;
 
-        public PlagioBuilder config(Config config) {
-            this.config = config;
+        public PlagioBuilder config(Configuration configuration) {
+            this.configuration = configuration;
             return this;
         }
 

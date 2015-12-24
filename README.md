@@ -8,7 +8,7 @@ Program available on "as is" basis and created only for education purposes.
 
 ### Requirements
   - Java Development Kit 1.8
-  - Apache Spark 1.3.1
+  - Apache Spark 1.5.2
 
 ### Usage
 
@@ -17,7 +17,7 @@ First of all, you should build Plagio application with `eu.ioservices.plagio.Pla
 ```java
 Plagio pl = 
     Plagio.builder()
-          .config(new SparkFileSystemConfig())                       // (mandatory) Plagio configuration instance
+          .config(new Configuration("config.properties"))            // (mandatory) Plagio configuration instance
           .textProcessorManager(new TextProcessorManager() {{        // (optional) you may define Text ProcessorManager for processing text, e.g. with
              addProcessor(new NormalizingTextProcessor());           //   NormalizingStringProcessor, that cleans text from unnecessary spaces
           }})                                                        //   and special characters with text transliterating
