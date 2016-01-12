@@ -1,12 +1,8 @@
 package eu.ioservices.plagio;
 
-import eu.ioservices.plagio.config.Configuration;
-import eu.ioservices.plagio.converting.TextConverter;
-import eu.ioservices.plagio.model.Meta;
-import eu.ioservices.plagio.model.Result;
-import eu.ioservices.plagio.processing.TextProcessorManager;
-import eu.ioservices.plagio.spark.producer.CacheProducer;
-import eu.ioservices.plagio.spark.supplier.ShinglesSupplier;
+import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
+import eu.ioservices.plagio.model.DuplicationReport;
+import eu.ioservices.plagio.model.Metadata;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,54 +13,111 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
-import java.util.Collection;
+import java.io.File;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import static eu.ioservices.plagio.algorithm.ShinglesAlgorithm.Shingle;
+
 /**
- * Apache Spark implementation that uses {@link eu.ioservices.plagio.algorithm.ShinglesAlgorithm}
- * for determining documents' duplication level in Apache Spark Cluster.
- *
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
+ *         Created 27-Dec-15
  */
 public class Plagio {
     private static final Logger LOGGER = LogManager.getLogger(Plagio.class);
-    private static final String CFG_DEBUG = "plagio.core.debug";
-    private static final String CFG_CACHING = "plagio.core.caching";
-    private static final String CFG_VERBOSE = "plagio.core.verbose";
-    private static final String CFG_SPARK_NAME = "plagio.core.spark.name";
-    private static final String CFG_SPARK_MASTER = "plagio.core.spark.master";
+    private final PlagioConfig config;
+    private final JavaSparkContext sparkContext;
 
-    private Configuration config;
-    private boolean textProcessorManagerEnabled;
-    private TextProcessorManager textProcessorManager;
-    private boolean textConverterEnabled;
-    private TextConverter textConverter;
-    private ShinglesSupplier documentShinglesSupplier;
-    private ShinglesSupplier cachedShinglesSupplier;
-    private CacheProducer shinglesCacheProducer;
-
-    protected Plagio(PlagioBuilder plagioBuilder) {
-        this.config = Objects.requireNonNull(plagioBuilder.configuration);
-        this.textProcessorManagerEnabled = plagioBuilder.textProcessorManagerEnabled;
-        this.textProcessorManager = Objects.requireNonNull(plagioBuilder.textProcessorManager);
-        this.textConverterEnabled = plagioBuilder.textConverterEnabled;
-        this.textConverter = Objects.requireNonNull(plagioBuilder.textConverter);
-        this.documentShinglesSupplier = Objects.requireNonNull(plagioBuilder.documentShinglesSupplier);
-        this.cachedShinglesSupplier = Objects.requireNonNull(plagioBuilder.cachedShinglesSupplier);
-        this.shinglesCacheProducer = Objects.requireNonNull(plagioBuilder.shinglesCacheProducer);
+    public Plagio(PlagioConfig config) {
+        this.config = config;
+        this.sparkContext = initSparkContext(config);
     }
 
-    public List<Result> process() {
-        boolean isDebug = config.getProperty(CFG_DEBUG, false, Boolean.class);
-        boolean isVerbose = config.getProperty(CFG_VERBOSE, false, Boolean.class);
-        boolean isCaching = config.getProperty(CFG_CACHING, false, Boolean.class);
-        String sparkAppName = config.getProperty(CFG_SPARK_NAME, this.getClass().getName());
-        String sparkMasterAddress = config.getRequiredProperty(CFG_SPARK_MASTER);
+    public void updateLibrary(String inputPath) {
+        final JavaPairRDD<Shingle, Metadata> oldShingles = this.retrieveLibrary();
+        final JavaPairRDD<Shingle, Metadata> newShingles = this.supplyDocumentShingles(inputPath, true);
 
-        if (isDebug) {
+        final JavaPairRDD<Shingle, Metadata> procSpace = oldShingles.union(newShingles);
+        final JavaPairRDD<Shingle, Metadata> newLibShingles = procSpace.distinct()
+                .filter(shingleMetaTuple -> shingleMetaTuple._2().isMarked())
+                .mapValues(metadata -> new Metadata(metadata.getDocumentId(), metadata.getTotalShingles()));
+
+        String libOutputPath = config.getLibraryPath() + "/" + System.currentTimeMillis() + "/";
+        newLibShingles.saveAsObjectFile(libOutputPath);
+    }
+
+    public List<DuplicationReport> checkDocuments(String inputPath) {
+        final JavaPairRDD<Shingle, Metadata> shinglesToCheck = this.supplyDocumentShingles(inputPath, true);
+        final JavaPairRDD<Shingle, Metadata> libShingles = this.retrieveLibrary();
+
+        final JavaPairRDD<Shingle, Metadata> procSpace = libShingles.union(shinglesToCheck);
+
+        final JavaPairRDD<Shingle, Iterable<Metadata>> groupedShingles = procSpace.groupByKey();
+
+        final JavaPairRDD<Shingle, Iterable<Metadata>> filteredGroupedShingles = groupedShingles.filter(groupedShinglesTuple -> {
+            final Iterable<Metadata> unfilteredDocMetadata = groupedShinglesTuple._2();
+            return StreamSupport.stream(unfilteredDocMetadata.spliterator(), false).anyMatch(Metadata::isMarked);
+        });
+
+        // Mapping documents with 1, if in their tuple are neighbors (duplicated shingles), 0 if no. Filtering non-marked documents
+        final JavaPairRDD<Metadata, Integer> shingleToOne = filteredGroupedShingles.flatMapToPair(shingleDocMetadataTuple -> {
+            final Iterable<Metadata> docMetadata = shingleDocMetadataTuple._2();
+            int coincides = (int) StreamSupport.stream(docMetadata.spliterator(), false)
+                    .count();
+            return StreamSupport.stream(docMetadata.spliterator(), true)
+                                .filter(Metadata::isMarked)
+                                .map(e -> new Tuple2<>(e, coincides > 1 ? 1 : 0))
+                                .collect(Collectors.toList());
+        });
+
+        // Reducing, calculating coincidences.
+        final JavaPairRDD<Metadata, Integer> shingleCoincides = shingleToOne.reduceByKey((i1, i2) -> i1 + i2);
+
+        // Creating Results, calculating duplication level
+        JavaRDD<DuplicationReport> duplicationReports = shingleCoincides.map(shingleCoincidesTuple -> {
+            final Metadata documentMetadata = shingleCoincidesTuple._1();
+            final Integer coincides = shingleCoincidesTuple._2();
+            return new DuplicationReport(documentMetadata, coincides);
+        });
+
+        return duplicationReports.collect();
+    }
+
+    private JavaPairRDD<Shingle, Metadata> retrieveLibrary() {
+        try {
+            final JavaRDD<Object> rawLibrary = this.sparkContext.objectFile(this.config.getLibraryPath() + "\\*");
+            final JavaPairRDD<Shingle, Metadata> libShingles = rawLibrary.mapToPair(objectRecord -> (Tuple2<Shingle, Metadata>) objectRecord);
+            libShingles.first();
+            return libShingles;
+        } catch (Exception e) {
+            // Fix InvalidInputException if hadoop finds no cache
+            return sparkContext.emptyRDD().mapToPair(o -> new Tuple2<>(new Shingle(0), new Metadata("fake", 1)));
+        }
+    }
+
+    public JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath) {
+        return this.supplyDocumentShingles(inputPath, false);
+    }
+
+    public JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath, boolean mark) {
+        final JavaPairRDD<String, String> textFiles = this.sparkContext.wholeTextFiles(Objects.requireNonNull(inputPath));
+
+        return textFiles.flatMapToPair(textFile -> {
+            String fileName = textFile._1().substring(textFile._1().lastIndexOf(File.separator) + 1);
+            String content = textFile._2();
+            final List<Shingle> textFileShingles = new ShinglesAlgorithm(content).getHashedShingles();
+            final Metadata documentMetadata = new Metadata(fileName, textFileShingles.size(), mark);
+
+            return textFileShingles.stream()
+                                   .map(shingle -> new Tuple2<>(shingle, documentMetadata))
+                                   .collect(Collectors.toList());
+        });
+    }
+
+    private JavaSparkContext initSparkContext(PlagioConfig cfg) {
+        if (cfg.isDebug()) {
             LOGGER.info("Debug mode is ON");
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             org.apache.logging.log4j.core.config.Configuration conf = ctx.getConfiguration();
@@ -72,138 +125,15 @@ public class Plagio {
             ctx.updateLoggers(conf);
         }
 
-        if (!isVerbose) {
+        if (!cfg.isVerbose()) {
             org.apache.log4j.Logger.getLogger("org").setLevel(org.apache.log4j.Level.OFF);
             org.apache.log4j.Logger.getLogger("akka").setLevel(org.apache.log4j.Level.OFF);
         } else {
             LOGGER.info("Verbose mode ON. Spark logging enabled.");
         }
 
-        // [Init] Building contexts
-        LOGGER.info("Creating Spark Context ...");
-        SparkConf sparkConf = new SparkConf().setAppName(sparkAppName)
-                                             .setMaster(sparkMasterAddress);
-        JavaSparkContext sc = new JavaSparkContext(sparkConf);
-        LOGGER.info("Spark Context has been successfully created.");
-
-        // [#S1] Supplying new shingles to Spark system
-        LOGGER.info("Supplying new shingles to Spark system ... ");
-        JavaPairRDD<Integer, Meta> shingleMeta = documentShinglesSupplier.supply(sc, config);
-
-        // [#S1] Supplying old shingles to Spark system
-        if (isCaching) {
-            LOGGER.info("Cache system enabled. Supplying old shingles to Spark system.");
-            JavaPairRDD<Integer, Meta> cachedShingles = cachedShinglesSupplier.supply(sc, config);
-            shingleMeta = shingleMeta.union(cachedShingles);
-        }
-
-        // [#3] Grouping documents with same shingles
-        JavaPairRDD<Integer, Iterable<Meta>> groupedUnitedShingleMeta = shingleMeta.groupByKey().cache();
-
-        // [#4] Filtering tuples that don’t have at least one document we are checking
-        JavaPairRDD<Integer, Iterable<Meta>> filteredGroupedUnitedShingleMeta = groupedUnitedShingleMeta
-                .filter(shingleDocumentMetaTuple -> {
-                    Iterable<Meta> unfilteredDocMetas = shingleDocumentMetaTuple._2();
-                    return StreamSupport.stream(unfilteredDocMetas.spliterator(), false).anyMatch(e -> !e.isCached());
-                });
-
-        // [#5] Saving new shingles into
-        if (isCaching) {
-            LOGGER.info("Saving new shingles into cache ... ");
-            JavaPairRDD<Integer, Meta> newShingles = groupedUnitedShingleMeta
-                    .filter(shingleMetas -> ((Collection<?>) shingleMetas._2()).size() == 1)
-                    .mapToPair(shingleMetas -> new Tuple2<>(shingleMetas._1(), shingleMetas._2().iterator().next()));
-
-            if (isDebug) {
-                long newRecords = newShingles.count();
-                LOGGER.debug("New shingles from new documents = " + newRecords);
-            }
-
-            shinglesCacheProducer.cache(newShingles, sc, config);
-            LOGGER.info("New shingles has been saved into cache dir.");
-        } else {
-            LOGGER.info("Cache mode is disabled, no documents' shingles will be cached.");
-        }
-
-        // [#6] Mapping documents with 1, if in their tuple are neighbors (duplicated shingles), 0 if no. Filtering non-marked documents
-        JavaPairRDD<Meta, Integer> metaCoincides = filteredGroupedUnitedShingleMeta.flatMapToPair(shingleMetasTuple -> {
-            Iterable<Meta> metas = shingleMetasTuple._2();
-            int coincides = (int) StreamSupport.stream(metas.spliterator(), false)
-                    .count();
-            return StreamSupport.stream(metas.spliterator(), true)
-                    .filter(e -> !e.isCached())
-                    .map(e -> new Tuple2<>(e, coincides > 1 ? 1 : 0))
-                    .collect(Collectors.toList());
-        });
-
-        // [#7] Reducing, calculating coincidences.
-        JavaPairRDD<Meta, Integer> reducedMetaCoincides = metaCoincides.reduceByKey((i1, i2) -> i1 + i2);
-
-        // [#8] Creating Results, calculating duplication level
-        JavaRDD<Result> resultsRDD = reducedMetaCoincides.map(metaCoincidesTuple ->
-                new Result(metaCoincidesTuple._1(), metaCoincidesTuple._2()));
-
-        return resultsRDD.collect();
-    }
-
-    public static PlagioBuilder builder() {
-        return new PlagioBuilder();
-    }
-
-    public static class PlagioBuilder {
-        private Configuration configuration;
-        private boolean textProcessorManagerEnabled;
-        private TextProcessorManager textProcessorManager;
-        private boolean textConverterEnabled;
-        private TextConverter textConverter;
-        private ShinglesSupplier documentShinglesSupplier;
-        private ShinglesSupplier cachedShinglesSupplier;
-        private CacheProducer shinglesCacheProducer;
-
-        public PlagioBuilder config(Configuration configuration) {
-            this.configuration = configuration;
-            return this;
-        }
-
-        public PlagioBuilder textProcessorManager(TextProcessorManager textProcessorManager) {
-            this.textProcessorManager = textProcessorManager;
-            this.textProcessorManagerEnabled = true;
-            return this;
-        }
-
-        public PlagioBuilder textConverter(TextConverter textConverter) {
-            this.textConverter = textConverter;
-            this.textConverterEnabled = true;
-            return this;
-        }
-
-        public PlagioBuilder documentShinglesSupplier(ShinglesSupplier documentShinglesSupplier) {
-            this.documentShinglesSupplier = documentShinglesSupplier;
-            return this;
-        }
-
-        public PlagioBuilder cachedShinglesSupplier(ShinglesSupplier cachedShinglesSupplier) {
-            this.cachedShinglesSupplier = cachedShinglesSupplier;
-            return this;
-        }
-
-        public PlagioBuilder shinglesCacheProducer(CacheProducer shinglesCacheProducer) {
-            this.shinglesCacheProducer = shinglesCacheProducer;
-            return this;
-        }
-
-        public PlagioBuilder textProcessorManagerEnabled(boolean textProcessorManagerEnabled) {
-            this.textProcessorManagerEnabled = textProcessorManagerEnabled;
-            return this;
-        }
-
-        public PlagioBuilder textConverterEnabled(boolean textConverterEnabled) {
-            this.textConverterEnabled = textConverterEnabled;
-            return this;
-        }
-
-        public Plagio build() {
-            return new Plagio(this);
-        }
+        SparkConf sparkConf = new SparkConf().setAppName(cfg.getSparkAppName())
+                                             .setMaster(cfg.getSparkMaster());
+        return new JavaSparkContext(sparkConf);
     }
 }

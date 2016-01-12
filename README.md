@@ -40,9 +40,9 @@ and contains information about documents and its duplication level:
 ```java
 results.stream().map(Result::toString).forEach(System.out::println);
 /*  --> STDOUT output:
- Result{docName='test-file.txt',    docShingles=160, coincidences=92,  duplicationLevel=57.49999999999999}
- Result{docName='test-file1_2.txt', docShingles=170, coincidences=165, duplicationLevel=97.05882352941177}
- Result{docName='test-file2.txt',   docShingles=200, coincidences=73,  duplicationLevel=36.5}
+ Result{docName='test-file.txt',    docShingles=160, docCoincidences=92,  duplicationLevel=57.49999999999999}
+ Result{docName='test-file1_2.txt', docShingles=170, docCoincidences=165, duplicationLevel=97.05882352941177}
+ Result{docName='test-file2.txt',   docShingles=200, docCoincidences=73,  duplicationLevel=36.5}
  */
 ```
 
