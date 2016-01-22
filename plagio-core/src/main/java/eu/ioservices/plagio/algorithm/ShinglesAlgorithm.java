@@ -1,5 +1,7 @@
 package eu.ioservices.plagio.algorithm;
 
+import eu.ioservices.plagio.util.Texts;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
@@ -23,41 +25,30 @@ import java.util.stream.Collectors;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class ShinglesAlgorithm implements Serializable {
-    private static final String SPACE_ESCAPE_MATCH = "[\\s\\n]";
-    private static final String SPEC_CHARACTERS_ESCAPE_MATCH = "[^A-Za-z0-9\\s]";
-    private static final int DEFAULT_SHINGLE_SIZE = 4;
-    private static final boolean DEFAULT_NORMALIZING_SWITCH = true;
-    private String text;
+    public static final int DEFAULT_SHINGLE_SIZE = 4;
+    public static final boolean DEFAULT_NORMALIZING_SWITCH = true;
     private int shingleSize;
     private boolean isNormalizing;
-    public ShinglesAlgorithm(String text) {
-        this(text, DEFAULT_NORMALIZING_SWITCH, DEFAULT_SHINGLE_SIZE);
+
+    public ShinglesAlgorithm() {
+        this(DEFAULT_NORMALIZING_SWITCH, DEFAULT_SHINGLE_SIZE);
     }
 
-    public ShinglesAlgorithm(String text, boolean normalize) {
-        this(text, normalize, DEFAULT_SHINGLE_SIZE);
+    public ShinglesAlgorithm(boolean normalize) {
+        this(normalize, DEFAULT_SHINGLE_SIZE);
     }
 
-    public ShinglesAlgorithm(String text, boolean normalize, int shingleSize) {
+    public ShinglesAlgorithm(boolean normalize, int shingleSize) {
         this.isNormalizing = normalize;
         this.shingleSize = shingleSize;
-        this.text = Objects.requireNonNull(text);
     }
 
-    private static String normalizeSpaces(String str) {
-        return str.replaceAll(SPACE_ESCAPE_MATCH, " ").trim();
+    public Set<Shingle> getDistinctHashedShingles(String text) throws IOException {
+        return new HashSet<>(this.getHashedShingles(text));
     }
 
-    private static String removeSpecialCharacters(String str) {
-        return str.replaceAll(SPEC_CHARACTERS_ESCAPE_MATCH, "");
-    }
-
-    public Set<Shingle> getDistinctHashedShingles() throws IOException {
-        return new HashSet<>(this.getHashedShingles());
-    }
-
-    public List<Shingle> getHashedShingles() throws IOException {
-        List<String> textShingles = getTextShingles();
+    public List<Shingle> getHashedShingles(String text) throws IOException {
+        List<String> textShingles = getTextShingles(text);
 
         return textShingles.stream()
                 .map(String::hashCode)
@@ -65,39 +56,25 @@ public class ShinglesAlgorithm implements Serializable {
                 .collect(Collectors.toList());
     }
 
-    public List<String> getTextShingles() {
-        String content;
-        if (this.isNormalizing()) {
-            content = normalizeSpaces(this.text);
-            content = removeSpecialCharacters(content);
-        } else {
-            content = this.text;
-        }
-
+    public List<String> getTextShingles(String text) {
+        String content = this.isNormalizing() ? this.normalizeString(text) : text;
         String[] words = content.split("\\s+");
         int totalShingles = words.length - shingleSize + 1;
+
         if (totalShingles < 1)
             throw new AlgorithmException("Text contains not enough words to get even 1 shingle: " + text);
 
         StringBuilder stringBuffer = new StringBuilder();
         List<String> shingles = new ArrayList<>(totalShingles);
         for (int i = 0; i < totalShingles; i++) {
-            for (int j = i; j < i + shingleSize; j++) {
+            for (int j = i; j < i + shingleSize; j++)
                 stringBuffer.append(words[j]).append(" ");
-            }
+
             stringBuffer.setLength(Math.max(stringBuffer.length() - 1, 0));
             shingles.add(stringBuffer.toString());
             stringBuffer.setLength(0);
         }
         return shingles;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
     }
 
     public int getShingleSize() {
@@ -114,6 +91,14 @@ public class ShinglesAlgorithm implements Serializable {
 
     public void setNormalizing(boolean isNormalizing) {
         this.isNormalizing = isNormalizing;
+    }
+
+    private String normalizeString(String str) {
+        String nString = Texts.cleanFormatting(str);
+        nString = Texts.removeSpecialCharacters(nString);
+        nString = Texts.transliterate(nString);
+
+        return nString;
     }
 
     public static final class Shingle implements Serializable {

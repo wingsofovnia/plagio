@@ -13,6 +13,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
+import java.io.Closeable;
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
@@ -25,14 +26,13 @@ import static eu.ioservices.plagio.algorithm.ShinglesAlgorithm.Shingle;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  *         Created 27-Dec-15
  */
-public class Plagio {
+public class Plagio implements Closeable {
     private static final Logger LOGGER = LogManager.getLogger(Plagio.class);
     private final PlagioConfig config;
-    private final JavaSparkContext sparkContext;
+    private JavaSparkContext sparkContext;
 
     public Plagio(PlagioConfig config) {
         this.config = config;
-        this.sparkContext = initSparkContext(config);
     }
 
     public void updateLibrary(String inputPath) {
@@ -85,35 +85,48 @@ public class Plagio {
         return duplicationReports.collect();
     }
 
-    private JavaPairRDD<Shingle, Metadata> retrieveLibrary() {
-        try {
-            final JavaRDD<Object> rawLibrary = this.sparkContext.objectFile(this.config.getLibraryPath() + "\\*");
-            final JavaPairRDD<Shingle, Metadata> libShingles = rawLibrary.mapToPair(objectRecord -> (Tuple2<Shingle, Metadata>) objectRecord);
-            libShingles.first();
-            return libShingles;
-        } catch (Exception e) {
-            // Fix InvalidInputException if hadoop finds no cache
-            return sparkContext.emptyRDD().mapToPair(o -> new Tuple2<>(new Shingle(0), new Metadata("fake", 1)));
-        }
+    private JavaSparkContext requireSparkContext() {
+        if (this.sparkContext == null)
+            this.sparkContext = initSparkContext(config);
+
+        return this.sparkContext;
     }
 
-    public JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath) {
+    private JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath) {
         return this.supplyDocumentShingles(inputPath, false);
     }
 
-    public JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath, boolean mark) {
-        final JavaPairRDD<String, String> textFiles = this.sparkContext.wholeTextFiles(Objects.requireNonNull(inputPath));
+    private JavaPairRDD<Shingle, Metadata> supplyDocumentShingles(String inputPath, boolean mark) {
+        final JavaPairRDD<String, String> textFiles = this.requireSparkContext().wholeTextFiles(Objects.requireNonNull(inputPath));
+
+        final int algShingleSize = config.getShinglesSize();
+        final boolean algIsNormalizing = config.isNormalizing();
+        if (algShingleSize <= 0)
+            throw new PlagioException("Shingle size must be bigger than 0!");
+        final ShinglesAlgorithm shinglesAlgorithm = new ShinglesAlgorithm(algIsNormalizing, algShingleSize);
 
         return textFiles.flatMapToPair(textFile -> {
             String fileName = textFile._1().substring(textFile._1().lastIndexOf(File.separator) + 1);
             String content = textFile._2();
-            final List<Shingle> textFileShingles = new ShinglesAlgorithm(content).getHashedShingles();
+            final List<Shingle> textFileShingles = shinglesAlgorithm.getHashedShingles(content);
             final Metadata documentMetadata = new Metadata(fileName, textFileShingles.size(), mark);
 
             return textFileShingles.stream()
                                    .map(shingle -> new Tuple2<>(shingle, documentMetadata))
                                    .collect(Collectors.toList());
         });
+    }
+
+    private JavaPairRDD<Shingle, Metadata> retrieveLibrary() {
+        try {
+            final JavaRDD<Object> rawLibrary = requireSparkContext().objectFile(this.config.getLibraryPath() + "\\*");
+            final JavaPairRDD<Shingle, Metadata> libShingles = rawLibrary.mapToPair(objectRecord -> (Tuple2<Shingle, Metadata>) objectRecord);
+            libShingles.first();
+            return libShingles;
+        } catch (Exception e) {
+            // Fix InvalidInputException if hadoop finds no cache
+            return requireSparkContext().emptyRDD().mapToPair(o -> new Tuple2<>(new Shingle(0), new Metadata("fake", 1)));
+        }
     }
 
     private JavaSparkContext initSparkContext(PlagioConfig cfg) {
@@ -132,8 +145,22 @@ public class Plagio {
             LOGGER.info("Verbose mode ON. Spark logging enabled.");
         }
 
-        SparkConf sparkConf = new SparkConf().setAppName(cfg.getSparkAppName())
-                                             .setMaster(cfg.getSparkMaster());
+        final String sparkAppName = cfg.getSparkAppName();
+        if (sparkAppName == null)
+            throw new PlagioException("Spark APP Name cannot be null");
+
+        final String sparkMaster = cfg.getSparkMaster();
+        if (sparkMaster == null)
+            throw new PlagioException("Spark Master address is null or invalid URI address");
+
+        SparkConf sparkConf = new SparkConf().setAppName(sparkAppName)
+                                             .setMaster(sparkMaster);
         return new JavaSparkContext(sparkConf);
+    }
+
+    @Override
+    public void close() {
+        this.sparkContext.close();
+        this.sparkContext = null;
     }
 }
