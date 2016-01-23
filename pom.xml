@@ -5,7 +5,11 @@
     <groupId>eu.ioservices</groupId>
     <artifactId>plagio</artifactId>
     <version>1.8</version>
-    <packaging>jar</packaging>
+    <modules>
+        <module>plagio-gui</module>
+        <module>plagio-core</module>
+    </modules>
+    <packaging>pom</packaging>
 
     <name>Plagio</name>
 
@@ -14,8 +18,6 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <dep.tika.core>1.7</dep.tika.core>
-        <dep.tika.parsers>1.7</dep.tika.parsers>
         <dep.apache.spark.core>1.5.2</dep.apache.spark.core>
         <dep.apache.spark.sql>1.5.2</dep.apache.spark.sql>
         <dep.log4j.core>2.2</dep.log4j.core>
@@ -23,80 +25,72 @@
         <dep.junidecode>0.1.1</dep.junidecode>
         <dep.test.junit>4.12</dep.test.junit>
 
-        <build.org.apache.maven-assembly-plugin>2.5.3</build.org.apache.maven-assembly-plugin>
+        <build.org.apache.maven-shade-plugin>2.4.2</build.org.apache.maven-shade-plugin>
     </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-core</artifactId>
-            <version>${dep.tika.core}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.tika</groupId>
-            <artifactId>tika-parsers</artifactId>
-            <version>${dep.tika.parsers}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.10</artifactId>
-            <version>${dep.apache.spark.core}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-sql_2.10</artifactId>
-            <version>${dep.apache.spark.sql}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${dep.log4j.core}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>${dep.log4j.api}</version>
-        </dependency>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-core_2.10</artifactId>
+                <version>${dep.apache.spark.core}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${dep.log4j.core}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${dep.log4j.api}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.moparisthebest</groupId>
+                <artifactId>junidecode</artifactId>
+                <version>${dep.junidecode}</version>
+            </dependency>
 
-        <dependency>
-            <groupId>com.moparisthebest</groupId>
-            <artifactId>junidecode</artifactId>
-            <version>${dep.junidecode}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${dep.test.junit}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${dep.test.junit}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
-        <finalName>${project.groupId}.${project.artifactId}</finalName>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>${build.org.apache.maven-assembly-plugin}</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${build.org.apache.maven-shade-plugin}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>shade</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <minimizeJar>false</minimizeJar>
+                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                        <filters>
+                            <filter>
+                                <artifact>*:*</artifact>
+                                <excludes>
+                                    <exclude>META-INF/*.SF</exclude>
+                                    <exclude>META-INF/*.DSA</exclude>
+                                    <exclude>META-INF/*.RSA</exclude>
+                                </excludes>
+                            </filter>
+                        </filters>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project>
