@@ -4,11 +4,7 @@
 
     <groupId>eu.ioservices</groupId>
     <artifactId>plagio</artifactId>
-    <version>1.8</version>
-    <modules>
-        <module>plagio-gui</module>
-        <module>plagio-core</module>
-    </modules>
+    <version>2.0</version>
     <packaging>pom</packaging>
 
     <name>Plagio</name>
@@ -30,6 +26,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>eu.ioservices</groupId>
+                <artifactId>plagio-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-core_2.10</artifactId>
@@ -93,4 +94,9 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <modules>
+        <module>plagio-gui</module>
+        <module>plagio-core</module>
+    </modules>
 </project>
