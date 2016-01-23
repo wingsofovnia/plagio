@@ -30,6 +30,7 @@ public class Plagio implements Closeable {
     private static final Logger LOGGER = LogManager.getLogger(Plagio.class);
     private final PlagioConfig config;
     private JavaSparkContext sparkContext;
+    private boolean isSparkContextStopped = false;
 
     public Plagio(PlagioConfig config) {
         this.config = config;
@@ -86,6 +87,9 @@ public class Plagio implements Closeable {
     }
 
     private JavaSparkContext requireSparkContext() {
+        if (this.isSparkContextStopped)
+            throw new IllegalStateException("Cannot execute actions on stopped Spark Context");
+
         if (this.sparkContext == null)
             this.sparkContext = initSparkContext(config);
 
@@ -161,6 +165,6 @@ public class Plagio implements Closeable {
     @Override
     public void close() {
         this.sparkContext.close();
-        this.sparkContext = null;
+        this.isSparkContextStopped = true;
     }
 }

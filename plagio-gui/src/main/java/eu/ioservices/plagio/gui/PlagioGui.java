@@ -1,6 +1,7 @@
 package eu.ioservices.plagio.gui;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -29,20 +30,25 @@ public class PlagioGui {
         draw();
     }
 
-    public void show() throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
-        for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-            if ("Met".equals(info.getName())) {
-                UIManager.setLookAndFeel(info.getClassName());
-                break;
-            }
-        }
+    public void show() {
         JFrame frame = new JFrame("Plagio");
         frame.setContentPane(mainPanel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setIconImage(Toolkit.getDefaultToolkit().getImage(PlagioGui.class.getResource("/javax/swing/plaf/metal/icons/ocean/hardDrive.gif")));
         frame.pack();
         frame.setResizable(false);
+        frame.setBounds(100, 100, 550, 400);
+
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            for(Window window : JFrame.getWindows()) {
+                SwingUtilities.updateComponentTreeUI(window);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         frame.setVisible(true);
-        frame.setBounds(100, 100, 450, 300);
     }
 
     public void showMessage(String title, String message, int messageType) {
@@ -114,7 +120,10 @@ public class PlagioGui {
         });
     }
 
-    private void draw() {mainPanel = new JPanel();
+    private void draw() {
+        mainPanel = new JPanel();
+        Border padding = BorderFactory.createEmptyBorder(3, 3, 3, 3);
+        mainPanel.setBorder(padding);
         mainPanel.setLayout(new GridBagLayout());
         libraryPathField = new JTextField();
         GridBagConstraints gbc;
@@ -123,6 +132,7 @@ public class PlagioGui {
         gbc.gridy = 3;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(libraryPathField, gbc);
@@ -131,6 +141,7 @@ public class PlagioGui {
         gbc.gridx = 4;
         gbc.gridy = 3;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(inputPathField, gbc);
@@ -141,6 +152,7 @@ public class PlagioGui {
         gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         mainPanel.add(label1, gbc);
         final JLabel label2 = new JLabel();
@@ -149,14 +161,17 @@ public class PlagioGui {
         gbc.gridx = 4;
         gbc.gridy = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         mainPanel.add(label2, gbc);
         normalizeTextCheckBox = new JCheckBox();
         normalizeTextCheckBox.setText("Normalize Text");
+        normalizeTextCheckBox.setSelected(true);
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
         gbc.gridy = 4;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         mainPanel.add(normalizeTextCheckBox, gbc);
         sparkMasterUrlField = new JTextField("spark://localhost:7077");
@@ -165,6 +180,7 @@ public class PlagioGui {
         gbc.gridy = 1;
         gbc.gridwidth = 4;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(sparkMasterUrlField, gbc);
@@ -175,6 +191,7 @@ public class PlagioGui {
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         mainPanel.add(label3, gbc);
         processButton = new JButton();
@@ -184,6 +201,7 @@ public class PlagioGui {
         gbc.gridy = 4;
         gbc.gridheight = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.fill = GridBagConstraints.BOTH;
         mainPanel.add(processButton, gbc);
         shingleSizeCombo = new JComboBox<>(SHINGLES_COMBO_BOX_VALUES);
@@ -192,6 +210,7 @@ public class PlagioGui {
         gbc.gridy = 5;
         gbc.gridwidth = 2;
         gbc.weightx = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(shingleSizeCombo, gbc);
@@ -205,6 +224,7 @@ public class PlagioGui {
         gbc.gridwidth = 4;
         gbc.weightx = 1.0;
         gbc.weighty = 1.0;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.fill = GridBagConstraints.BOTH;
         mainPanel.add(scrollableOutputArea, gbc);
         final JToolBar.Separator toolBar$Separator1 = new JToolBar.Separator();
@@ -212,6 +232,7 @@ public class PlagioGui {
         gbc.gridx = 1;
         gbc.gridy = 6;
         gbc.gridwidth = 4;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(toolBar$Separator1, gbc);
         updateLibraryCheckBox = new JCheckBox();

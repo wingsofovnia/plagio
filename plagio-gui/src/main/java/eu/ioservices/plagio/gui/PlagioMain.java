@@ -30,11 +30,17 @@ public class PlagioMain {
             final ExecutorService executorService = Executors.newSingleThreadExecutor();
             executorService.execute(() -> {
                 final String sparkMasterUrl = plagioGui.getSparkMasterUrl();
+                System.out.println("  - spark master: " + sparkMasterUrl);
                 final String inputPath = plagioGui.getInputPath();
+                System.out.println("  - inputPath: " + inputPath);
                 final String libPath = plagioGui.getLibPath();
+                System.out.println("  - libPath: " + libPath);
                 final int shinglesSize = plagioGui.getShinglesSize(ShinglesAlgorithm.DEFAULT_SHINGLE_SIZE);
+                System.out.println("  - shingleSize: " + shinglesSize);
                 final boolean normalizing = plagioGui.isNormalizing();
+                System.out.println("  - normalizing: " + (normalizing ? "enabled" : "disabled"));
                 final boolean libraryUpdate = plagioGui.isLibraryUpdate();
+                System.out.println("  - libraryUpdate: " + (libraryUpdate ? "enabled" : "disabled"));
 
                 final PlagioConfig config = new PlagioConfig();
                 config.setSparkMaster(sparkMasterUrl);
