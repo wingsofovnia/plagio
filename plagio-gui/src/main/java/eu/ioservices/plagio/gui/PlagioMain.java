@@ -24,23 +24,35 @@ public class PlagioMain {
 
         System.out.println("# GUI initialized.");
         plagioGui.setProcessButtonActionListener(event -> {
-            System.out.println("# Started ...");
-            plagioGui.disableProcessButton();
-
             final ExecutorService executorService = Executors.newSingleThreadExecutor();
             executorService.execute(() -> {
                 final String sparkMasterUrl = plagioGui.getSparkMasterUrl();
-                System.out.println("  - spark master: " + sparkMasterUrl);
+                if (sparkMasterUrl.length() == 0) {
+                    plagioGui.showWarningMessage("Please fill Spark Master URL field.");
+                    return;
+                }
                 final String inputPath = plagioGui.getInputPath();
-                System.out.println("  - inputPath: " + inputPath);
+                if (inputPath.length() == 0) {
+                    plagioGui.showWarningMessage("Please fill Input Documents Path field.");
+                    return;
+                }
                 final String libPath = plagioGui.getLibPath();
-                System.out.println("  - libPath: " + libPath);
+                if (libPath.length() == 0) {
+                    plagioGui.showWarningMessage("Please fill Library Path field.");
+                    return;
+                }
                 final int shinglesSize = plagioGui.getShinglesSize(ShinglesAlgorithm.DEFAULT_SHINGLE_SIZE);
-                System.out.println("  - shingleSize: " + shinglesSize);
                 final boolean normalizing = plagioGui.isNormalizing();
-                System.out.println("  - normalizing: " + (normalizing ? "enabled" : "disabled"));
                 final boolean libraryUpdate = plagioGui.isLibraryUpdate();
+
+                System.out.println("# Started ...");
+                plagioGui.disableProcessButton();
                 System.out.println("  - libraryUpdate: " + (libraryUpdate ? "enabled" : "disabled"));
+                System.out.println("  - normalizing: " + (normalizing ? "enabled" : "disabled"));
+                System.out.println("  - shingleSize: " + shinglesSize);
+                System.out.println("  - libPath: " + libPath);
+                System.out.println("  - inputPath: " + inputPath);
+                System.out.println("  - spark master: " + sparkMasterUrl);
 
                 final PlagioConfig config = new PlagioConfig();
                 config.setSparkMaster(sparkMasterUrl);

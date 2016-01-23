@@ -125,6 +125,7 @@ public class Plagio implements Closeable {
         try {
             final JavaRDD<Object> rawLibrary = requireSparkContext().objectFile(this.config.getLibraryPath() + "\\*");
             final JavaPairRDD<Shingle, Metadata> libShingles = rawLibrary.mapToPair(objectRecord -> (Tuple2<Shingle, Metadata>) objectRecord);
+            // Fires library retrieving to check if spark will throw InvalidInputException
             libShingles.first();
             return libShingles;
         } catch (Exception e) {

@@ -2,6 +2,8 @@ package eu.ioservices.plagio.gui;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -41,6 +43,8 @@ public class PlagioGui {
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            ((DefaultCaret) outputArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
             for(Window window : JFrame.getWindows()) {
                 SwingUtilities.updateComponentTreeUI(window);
             }
@@ -57,6 +61,10 @@ public class PlagioGui {
 
     public void showErrorMessage(String message) {
         this.showMessage("Error", message, JOptionPane.ERROR_MESSAGE);
+    }
+
+    public void showWarningMessage(String message) {
+        this.showMessage("Warning", message, JOptionPane.WARNING_MESSAGE);
     }
 
     public void showSuccessMessage(String message) {
@@ -215,9 +223,20 @@ public class PlagioGui {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(shingleSizeCombo, gbc);
         outputArea = new JTextArea();
+        outputArea.setFont(outputArea.getFont().deriveFont(11f));
+        outputArea.setEditable(false);
         outputArea.setLineWrap(true);
+        outputArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                outputArea.setCaretPosition(outputArea.getDocument().getLength());
+            }
+            @Override
+            public void removeUpdate(DocumentEvent e) {}
+            @Override
+            public void changedUpdate(DocumentEvent arg0) {}
+        });
         JScrollPane scrollableOutputArea = new JScrollPane(outputArea);
-        ((DefaultCaret) outputArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
         gbc = new GridBagConstraints();
         gbc.gridx = 1;
         gbc.gridy = 7;
