@@ -17,7 +17,7 @@ import java.util.function.Consumer;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class PlagioGui {
-    private static final String[] SHINGLES_COMBO_BOX_VALUES = {"Select shingle size", "2", "4", "6"};
+    private static final String[] SHINGLES_COMBO_BOX_VALUES = {"Select shingle size", "2", "3", "4", "5", "6"};
     private JTextField libraryPathField;
     private JTextField inputPathField;
     private JTextArea outputArea;

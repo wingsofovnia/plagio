@@ -61,7 +61,7 @@ public class PlagioMain {
                 config.setNormalizing(normalizing);
 
                 try (final Plagio plagio = new Plagio(config)) {
-                    final List<DuplicationReport> duplicationReports = plagio.checkDocuments(inputPath);
+                    final List<DuplicationReport> duplicationReports = plagio.checkDocuments(inputPath, libraryUpdate);
 
                     StringBuilder reportsAsStringBuilder = new StringBuilder();
                     for (DuplicationReport report : duplicationReports) {
@@ -77,12 +77,6 @@ public class PlagioMain {
                     System.out.println("# Results: ");
                     System.out.println(reportsAsStringBuilder.toString());
                     System.out.println("# Document analysis has been finished!");
-                    if (libraryUpdate) {
-                        System.out.println();
-                        System.out.println("* Updating library ... ");
-                        plagio.updateLibrary(inputPath);
-                        System.out.println("* Updating library finished!");
-                    }
                     plagioGui.showSuccessMessage("Document analysis has been finished!");
                 } catch (PlagioException e) {
                     System.out.println("# Error: " + e.getMessage());

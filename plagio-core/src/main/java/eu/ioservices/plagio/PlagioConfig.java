@@ -17,7 +17,7 @@ public class PlagioConfig {
     private String libraryPath;
 
     private int shinglesSize = ShinglesAlgorithm.DEFAULT_SHINGLE_SIZE;
-    private boolean isNormalizing = ShinglesAlgorithm.DEFAULT_NORMALIZING_SWITCH;
+    private boolean isNormalizing = Plagio.DEFAULT_CHECK_DOCUMENT_NORMALIZES_TEXT;
 
     public int getShinglesSize() {
         return shinglesSize;
