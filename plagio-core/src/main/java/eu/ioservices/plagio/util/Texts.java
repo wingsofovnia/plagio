@@ -1,9 +1,5 @@
 package eu.ioservices.plagio.util;
 
-import eu.ioservices.plagio.algorithm.HashShinglesAlgorithm;
-import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
-import net.sf.junidecode.Junidecode;
-
 import java.util.*;
 
 /**
@@ -12,8 +8,8 @@ import java.util.*;
 public final class Texts {
     private static final String SPACE_ESCAPE_MATCH = "[\\s\\n]";
     private static final String SPEC_CHARACTERS_ESCAPE_MATCH = "[^A-Za-z0-9\\s]";
-    private static final List<String> STOP_WORDS = new ArrayList<>(Arrays.asList(new String[]{"a", "about", "above",
-            "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
+    private static final List<String> STOP_WORDS = new ArrayList<>(Arrays.asList(new String[]{"a", "the", "about",
+            "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't", "as", "at",
             "be", "because", "been", "before", "being", "below", "between", "both", "but", "by", "can't",
             "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't",
             "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't",
@@ -44,9 +40,5 @@ public final class Texts {
                 textIterator.remove();
 
         return text.stream().reduce((str1, str2) -> str1 + " " + str2).get();
-    }
-
-    public static String transliterate(String str) {
-        return Junidecode.unidecode(str);
     }
 }

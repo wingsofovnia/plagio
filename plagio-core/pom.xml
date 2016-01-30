@@ -26,10 +26,6 @@
             <artifactId>log4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.moparisthebest</groupId>
-            <artifactId>junidecode</artifactId>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>test</scope>

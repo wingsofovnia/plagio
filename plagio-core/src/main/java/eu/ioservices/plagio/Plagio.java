@@ -83,8 +83,7 @@ public class Plagio implements Closeable {
         // Mapping documents with 1, if in their tuple are neighbors (duplicated shingles), 0 if no. Filtering non-marked documents
         final JavaPairRDD<Metadata, Integer> shingleToOne = filteredGroupedShingles.flatMapToPair(shingleDocMetadataTuple -> {
             final Iterable<Metadata> docMetadata = shingleDocMetadataTuple._2();
-            int coincides = (int) StreamSupport.stream(docMetadata.spliterator(), false)
-                    .count();
+            int coincides = (int) StreamSupport.stream(docMetadata.spliterator(), false).count();
             return StreamSupport.stream(docMetadata.spliterator(), true)
                                 .filter(Metadata::isMarked)
                                 .map(e -> new Tuple2<>(e, coincides > 1 ? 1 : 0))

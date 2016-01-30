@@ -62,20 +62,17 @@ public class PlagioMain {
 
                 try (final Plagio plagio = new Plagio(config)) {
                     final List<DuplicationReport> duplicationReports = plagio.checkDocuments(inputPath, libraryUpdate);
-
-                    StringBuilder reportsAsStringBuilder = new StringBuilder();
-                    for (DuplicationReport report : duplicationReports) {
-                        reportsAsStringBuilder.append("Document = ")
-                                .append(report.getMetadata().getDocumentId())
-                                .append(", duplication level = ")
-                                .append((int) report.getDuplicationLevel())
-                                .append("%, coincidences = ")
-                                .append(report.getDocCoincidences())
-                                .append(";\n");
-                    }
                     System.out.println();
                     System.out.println("# Results: ");
-                    System.out.println(reportsAsStringBuilder.toString());
+                    duplicationReports.stream().forEach(r -> {
+                        System.out.println(String.format("Document \"%s\" (shingles = %d, coincides = %d) :: plagiarism = %.2f%% (%d/%d)",
+                                r.getMetadata().getDocumentId(),
+                                r.getMetadata().getTotalShingles(),
+                                r.getDocCoincidences(),
+                                r.getDuplicationLevel(),
+                                r.getMetadata().getTotalShingles(),
+                                r.getDocCoincidences()));
+                    });
                     System.out.println("# Document analysis has been finished!");
                     plagioGui.showSuccessMessage("Document analysis has been finished!");
                 } catch (PlagioException e) {
