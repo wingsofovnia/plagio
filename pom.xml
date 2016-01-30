@@ -4,7 +4,7 @@
 
     <groupId>eu.ioservices</groupId>
     <artifactId>plagio</artifactId>
-    <version>2.0</version>
+    <version>2.2</version>
     <packaging>pom</packaging>
 
     <name>Plagio</name>
@@ -18,8 +18,8 @@
         <dep.apache.spark.sql>1.5.2</dep.apache.spark.sql>
         <dep.log4j.core>2.2</dep.log4j.core>
         <dep.log4j.api>2.2</dep.log4j.api>
-        <dep.junidecode>0.1.1</dep.junidecode>
         <dep.test.junit>4.12</dep.test.junit>
+        <dep.commons.io>2.4</dep.commons.io>
 
         <build.org.apache.maven-shade-plugin>2.4.2</build.org.apache.maven-shade-plugin>
     </properties>
@@ -47,9 +47,9 @@
                 <version>${dep.log4j.api}</version>
             </dependency>
             <dependency>
-                <groupId>com.moparisthebest</groupId>
-                <artifactId>junidecode</artifactId>
-                <version>${dep.junidecode}</version>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${dep.commons.io}</version>
             </dependency>
 
             <dependency>
