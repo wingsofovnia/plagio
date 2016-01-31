@@ -21,7 +21,10 @@ import static org.junit.Assert.assertEquals;
 public class PlagioTest {
     private static final double DUPLICATION_LEVEL_PRECISION = 1;
     private static final double EXPECTED_TEST_LIB_DUPLICATION_LEVEL = 40;
+    private static final int EXPECTED_TEST_LIB_COINCIDES_NUM = 6;
+    private static final int EXPECTED_TEST_LIB_PLAG_SHINGLES_NUM = 15;
     private static final double EXPECTED_TEST_EMPTY_LIB_DUPLICATION_LEVEL = 0;
+    private static final int EXPECTED_TEST_EMPTY_LIB_ORIGIN_SHINGLES_NUM = 19;
 
     private static final String ORIGINAL_TEXT_FILENAME = "orig.txt";
     private static final String PLAGIARISM_FILENAME = "plag.txt";
@@ -60,6 +63,7 @@ public class PlagioTest {
             final List<DuplicationReport> duplicationReports = plagio.checkDocuments(TEMP_INPUT_DIR_PATH);
             System.out.println("  -- " + duplicationReports.toString());
             assertEquals(EXPECTED_TEST_EMPTY_LIB_DUPLICATION_LEVEL, duplicationReports.get(0).getDuplicationLevel(), DUPLICATION_LEVEL_PRECISION);
+            assertEquals(EXPECTED_TEST_EMPTY_LIB_ORIGIN_SHINGLES_NUM, duplicationReports.get(0).getMetadata().getTotalShingles(), DUPLICATION_LEVEL_PRECISION);
         }
     }
 
@@ -84,6 +88,8 @@ public class PlagioTest {
             final List<DuplicationReport> duplicationReports = plagio.checkDocuments(TEMP_INPUT_DIR_PATH);
             System.out.println("  -- " + duplicationReports.toString());
             assertEquals(EXPECTED_TEST_LIB_DUPLICATION_LEVEL, duplicationReports.get(0).getDuplicationLevel(), DUPLICATION_LEVEL_PRECISION);
+            assertEquals(EXPECTED_TEST_LIB_PLAG_SHINGLES_NUM, duplicationReports.get(0).getMetadata().getTotalShingles(), DUPLICATION_LEVEL_PRECISION);
+            assertEquals(EXPECTED_TEST_LIB_COINCIDES_NUM, duplicationReports.get(0).getDocCoincidences(), DUPLICATION_LEVEL_PRECISION);
         }
     }
 
