@@ -14,14 +14,14 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
 
-        <dep.apache.spark.core>1.5.2</dep.apache.spark.core>
-        <dep.apache.spark.sql>1.5.2</dep.apache.spark.sql>
-        <dep.log4j.core>2.2</dep.log4j.core>
-        <dep.log4j.api>2.2</dep.log4j.api>
+        <dep.apache.spark.core>1.6.0</dep.apache.spark.core>
+        <dep.apache.spark.sql>1.6.0</dep.apache.spark.sql>
+        <dep.log4j.core>2.5</dep.log4j.core>
+        <dep.log4j.api>2.5</dep.log4j.api>
         <dep.test.junit>4.12</dep.test.junit>
         <dep.commons.io>2.4</dep.commons.io>
 
-        <build.org.apache.maven-shade-plugin>2.4.2</build.org.apache.maven-shade-plugin>
+        <build.org.apache.maven-shade-plugin>2.4.3</build.org.apache.maven-shade-plugin>
     </properties>
 
     <dependencyManagement>
