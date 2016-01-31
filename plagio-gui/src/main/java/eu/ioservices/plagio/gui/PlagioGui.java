@@ -1,5 +1,7 @@
 package eu.ioservices.plagio.gui;
 
+import eu.ioservices.plagio.algorithm.ShinglesAlgorithm;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
@@ -17,7 +19,24 @@ import java.util.function.Consumer;
  * @author &lt;<a href="mailto:illia.ovchynnikov@gmail.com">illia.ovchynnikov@gmail.com</a>&gt;
  */
 public class PlagioGui {
-    private static final String[] SHINGLES_COMBO_BOX_VALUES = {"Select shingle size", "2", "3", "4", "5", "6"};
+    enum PlagioMode {
+        LIB_UPDATE_MODE("Library update only"),
+        PLAGIARISM_MODE("Duplication report"),
+        UPDATE_N_REPORT_MODE("Report + lib update");
+
+        private final String display;
+        private PlagioMode(String s) {
+            display = s;
+        }
+        @Override
+        public String toString() {
+            return display;
+        }
+    }
+    private static final String[] SHINGLES_COMBO_BOX_VALUES
+            = {"Select shingle size. Default: " + ShinglesAlgorithm.DEFAULT_SHINGLE_SIZE,
+            "2", "3", "4", "5", "6"};
+    
     private JTextField libraryPathField;
     private JTextField inputPathField;
     private JTextArea outputArea;
@@ -26,7 +45,7 @@ public class PlagioGui {
     private JButton processButton;
     private JComboBox<? extends String> shingleSizeCombo;
     private JPanel mainPanel;
-    private JCheckBox updateLibraryCheckBox;
+    private JComboBox modeComboBox;
 
     public PlagioGui() {
         draw();
@@ -87,8 +106,8 @@ public class PlagioGui {
         return this.normalizeTextCheckBox.isSelected();
     }
 
-    public boolean isLibraryUpdate() {
-        return this.updateLibraryCheckBox.isSelected();
+    public PlagioMode getMode() {
+        return (PlagioMode) modeComboBox.getSelectedItem();
     }
 
     public int getShinglesSize(int defaultValue) {
@@ -254,15 +273,15 @@ public class PlagioGui {
         gbc.insets = new Insets(2, 2, 2, 2);
         gbc.fill = GridBagConstraints.HORIZONTAL;
         mainPanel.add(toolBar$Separator1, gbc);
-        updateLibraryCheckBox = new JCheckBox();
-        updateLibraryCheckBox.setText("Update library");
+        modeComboBox = new JComboBox();
+        modeComboBox.setModel(new DefaultComboBoxModel<>(PlagioMode.values()));
         gbc = new GridBagConstraints();
         gbc.gridx = 2;
         gbc.gridy = 4;
+        gbc.insets = new Insets(2, 2, 2, 2);
         gbc.anchor = GridBagConstraints.WEST;
-        mainPanel.add(updateLibraryCheckBox, gbc);
+        mainPanel.add(modeComboBox, gbc);
     }
-
     /**
      * An output stream that writes its output to a javax.swing.JTextArea
      * control.

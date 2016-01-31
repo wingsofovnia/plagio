@@ -43,11 +43,11 @@ public class PlagioMain {
                 }
                 final int shinglesSize = plagioGui.getShinglesSize(ShinglesAlgorithm.DEFAULT_SHINGLE_SIZE);
                 final boolean normalizing = plagioGui.isNormalizing();
-                final boolean libraryUpdate = plagioGui.isLibraryUpdate();
+                final PlagioGui.PlagioMode mode = plagioGui.getMode();
 
                 System.out.println("# Started ...");
                 plagioGui.disableProcessButton();
-                System.out.println("  - libraryUpdate: " + (libraryUpdate ? "enabled" : "disabled"));
+                System.out.println("  - mode: " + mode.toString());
                 System.out.println("  - normalizing: " + (normalizing ? "enabled" : "disabled"));
                 System.out.println("  - shingleSize: " + shinglesSize);
                 System.out.println("  - libPath: " + libPath);
@@ -61,18 +61,23 @@ public class PlagioMain {
                 config.setNormalizing(normalizing);
 
                 try (final Plagio plagio = new Plagio(config)) {
-                    final List<DuplicationReport> duplicationReports = plagio.checkDocuments(inputPath, libraryUpdate);
-                    System.out.println();
-                    System.out.println("# Results: ");
-                    duplicationReports.stream().forEach(r -> {
-                        System.out.println(String.format("Document \"%s\" (shingles = %d, coincides = %d) :: plagiarism = %.2f%% (%d/%d)",
-                                r.getMetadata().getDocumentId(),
-                                r.getMetadata().getTotalShingles(),
-                                r.getDocCoincidences(),
-                                r.getDuplicationLevel(),
-                                r.getMetadata().getTotalShingles(),
-                                r.getDocCoincidences()));
-                    });
+                    if (mode == PlagioGui.PlagioMode.LIB_UPDATE_MODE) {
+                        plagio.updateLibrary(inputPath);
+                    } else {
+                        boolean libraryUpdate = mode == PlagioGui.PlagioMode.UPDATE_N_REPORT_MODE;
+                        final List<DuplicationReport> duplicationReports = plagio.checkDocuments(inputPath, libraryUpdate);
+                        System.out.println();
+                        System.out.println("# Results: ");
+                        duplicationReports.stream().forEach(r -> {
+                            System.out.println(String.format("Document \"%s\" (shingles = %d, coincides = %d) :: plagiarism = %.2f%% (%d/%d)",
+                                    r.getMetadata().getDocumentId(),
+                                    r.getMetadata().getTotalShingles(),
+                                    r.getDocCoincidences(),
+                                    r.getDuplicationLevel(),
+                                    r.getMetadata().getTotalShingles(),
+                                    r.getDocCoincidences()));
+                        });
+                    }
                     System.out.println("# Document analysis has been finished!");
                     plagioGui.showSuccessMessage("Document analysis has been finished!");
                 } catch (PlagioException e) {
