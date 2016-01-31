@@ -47,7 +47,7 @@ public class Plagio implements Closeable {
         this.updateLibrary(procSpace);
     }
 
-    public void updateLibrary(JavaPairRDD<Integer, Metadata> procSpace) {
+    protected void updateLibrary(JavaPairRDD<Integer, Metadata> procSpace) {
         final JavaPairRDD<Integer, Metadata> newLibShingles = procSpace.distinct()
                 .filter(shingleMetaTuple -> shingleMetaTuple._2().isMarked())
                 .mapValues(metadata -> new Metadata(metadata.getDocumentId(), metadata.getTotalShingles()));
